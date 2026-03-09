@@ -36,11 +36,13 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { gamesApi } from '../api'
+import { useGameStore } from '../stores/useGameStore'
+import { storeToRefs } from 'pinia'
 import { coverEmoji, makeFallbackCoverDataUrl, needsAutoCover } from '../utils/coverFallback'
 
-const games = ref([])
-const loading = ref(true)
+const store = useGameStore()
+const { wishlist: games, loading } = storeToRefs(store)
+
 const brokenCoverIds = ref({})
 
 function markBroken(id) {
@@ -54,18 +56,7 @@ function coverSrc(game) {
   return null
 }
 
-async function loadWishlist() {
-  try {
-    const res = await gamesApi.list('?wishlist=true')
-    games.value = res.data || []
-  } catch (e) {
-    console.error('Failed to load wishlist:', e)
-  } finally {
-    loading.value = false
-  }
-}
-
-onMounted(loadWishlist)
+onMounted(() => store.load())
 </script>
 
 <style scoped>

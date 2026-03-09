@@ -254,8 +254,9 @@ onMounted(loadStats)
 
 .stats-table { width: 100%; border-collapse: collapse; }
 .stats-table th,
-.stats-table td { text-align: left; padding: 0.75rem; border-bottom: 1px solid var(--border); }
-.stats-table th { color: var(--text-muted); font-size: 0.875rem; }
+.stats-table td { text-align: left; padding: 0.75rem; border-bottom: 1px solid var(--glass-border); }
+.stats-table th { color: var(--text-muted); font-size: 0.875rem; background: rgba(0,0,0,0.2); }
+.stats-table tr:hover { background: rgba(255,255,255,0.02); }
 
 .text-success { color: var(--success); }
 .text-error { color: #ef4444; }

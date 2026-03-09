@@ -2,15 +2,20 @@
   <div id="app">
     <NotificationStack />
     <header class="top-bar">
-      <router-link to="/" class="logo" active-class="" exact-active-class="">🗃️ Collectabase</router-link>
+      <div class="header-left">
+        <router-link to="/" class="logo" active-class="" exact-active-class="">
+          <img src="/icons/android-chrome-192x192.png" alt="Collectabase Logo" class="logo-img" />
+          Collectabase
+        </router-link>
 
-      <!-- Desktop: inline nav links -->
-      <nav class="desktop-nav">
-        <router-link to="/" active-class="" exact-active-class="active">My Games</router-link>
-        <router-link to="/stats">Stats</router-link>
-        <router-link to="/prices">Prices</router-link>
-        <router-link to="/more">More</router-link>
-      </nav>
+        <!-- Desktop: inline nav links -->
+        <nav class="desktop-nav">
+          <router-link to="/" active-class="" exact-active-class="active">My Games</router-link>
+          <router-link to="/stats">Stats</router-link>
+          <router-link to="/prices">Prices</router-link>
+          <router-link to="/more">More</router-link>
+        </nav>
+      </div>
 
       <router-link to="/add" class="btn btn-primary add-btn" active-class="btn-active">+ Add</router-link>
     </header>
@@ -80,13 +85,29 @@ import NotificationStack from './components/NotificationStack.vue'
   box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
 }
 
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  flex: 1; /* Pushes the Add button to the right */
+}
+
 .logo {
   font-weight: bold;
   font-size: 1.1rem;
   color: var(--text);
   text-decoration: none;
-  margin-right: auto;
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.logo-img {
+  width: 24px;
+  height: 24px;
+  border-radius: 4px; /* Slight rounding for a premium look */
+  object-fit: contain;
 }
 
 /* ── Desktop nav links ── */

@@ -2,12 +2,13 @@ from datetime import datetime, timezone
 from pathlib import Path
 from urllib.parse import quote
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, BackgroundTasks, Depends
 
 from ..errors import bad_request, not_found
 from ..security import require_admin_access
 from ..schemas import BarcodeLookup, IGDBSearch
 from ...database import dict_from_row, get_db, set_app_meta
+from ... import jobs
 from ...services.lookup_service import (
     cache_remote_cover,
     get_console_image,
@@ -270,7 +271,14 @@ async def set_console_placeholder_cover(game_id: int):
 
 
 @router.post("/api/enrich/all")
-async def enrich_all_covers(limit: int = 20, _admin: None = Depends(require_admin_access)):
+async def enrich_all_covers(
+    background_tasks: BackgroundTasks,
+    limit: int = 20,
+    _admin: None = Depends(require_admin_access),
+):
+    """Kick off a background job to enrich covers for up to `limit` items.
+    Returns immediately with a job_id. Poll /api/jobs/{job_id} for progress.
+    """
     with get_db() as db:
         rows = db.execute(
             """
@@ -283,8 +291,16 @@ async def enrich_all_covers(limit: int = 20, _admin: None = Depends(require_admi
         ).fetchall()
         items = [dict_from_row(row) for row in rows]
 
-    results = {"success": 0, "failed": 0, "total": len(items)}
-    for item in items:
+    job_id = jobs.start("bulk_enrich", total=len(items))
+    background_tasks.add_task(_run_enrich_all_covers, job_id, items)
+    return {"job_id": job_id, "total": len(items), "state": "running"}
+
+
+async def _run_enrich_all_covers(job_id: str, items: list) -> None:
+    success = 0
+    failed = 0
+    for i, item in enumerate(items):
+        jobs.update(job_id, progress=i + 1)
         cover_url = None
         if _should_use_console_placeholder(item):
             cover_url = get_console_image(_placeholder_query(item))
@@ -313,14 +329,13 @@ async def enrich_all_covers(limit: int = 20, _admin: None = Depends(require_admi
                     (cover_url, item["id"]),
                 )
                 db.commit()
-            results["success"] += 1
+            success += 1
         else:
-            results["failed"] += 1
+            failed += 1
 
     finished_at = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
     set_app_meta("last_bulk_enrich_at", finished_at)
-    set_app_meta("last_bulk_enrich_success", results["success"])
-    set_app_meta("last_bulk_enrich_failed", results["failed"])
-    set_app_meta("last_bulk_enrich_total", results["total"])
-
-    return results
+    set_app_meta("last_bulk_enrich_success", str(success))
+    set_app_meta("last_bulk_enrich_failed", str(failed))
+    set_app_meta("last_bulk_enrich_total", str(len(items)))
+    jobs.finish(job_id, success=success, failed=failed)

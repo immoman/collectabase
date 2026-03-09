@@ -2,11 +2,12 @@ import asyncio
 from datetime import datetime, timezone
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from pydantic import BaseModel
 
 from .api.security import require_admin_access
 from .database import dict_from_row, get_db, set_app_meta
+from . import jobs
 
 from .services.price.utils import (
     PLATFORM_SLUGS, _to_eur, get_eur_rate, _normalize_text
@@ -173,8 +174,14 @@ async def delete_price_history_entry(game_id: int, entry_id: int):
 
 
 @router.post("/api/prices/update-all")
-async def bulk_price_update(limit: int = 100, _admin: None = Depends(require_admin_access)):
-    """Fetch prices for up to `limit` games (only non-wishlist games)."""
+async def bulk_price_update(
+    background_tasks: BackgroundTasks,
+    limit: int = 100,
+    _admin: None = Depends(require_admin_access),
+):
+    """Kick off a background job to fetch prices for up to `limit` games.
+    Returns immediately with a job_id. Poll /api/jobs/{job_id} for progress.
+    """
     with get_db() as db:
         try:
             rows = db.execute(
@@ -199,14 +206,21 @@ async def bulk_price_update(limit: int = 100, _admin: None = Depends(require_adm
                 """,
                 (limit,),
             ).fetchall()
-        games = [dict_from_row(r) for r in rows]
+        game_list = [dict_from_row(r) for r in rows]
 
+    job_id = jobs.start("bulk_price_update", total=len(game_list))
+    background_tasks.add_task(_run_bulk_price_update, job_id, game_list)
+    return {"job_id": job_id, "total": len(game_list), "state": "running"}
+
+
+async def _run_bulk_price_update(job_id: str, game_list: list) -> None:
     eur_rate = await get_eur_rate()
-
     success = 0
     failed = 0
 
-    for game in games:
+    for i, game in enumerate(game_list):
+        jobs.update(job_id, progress=i + 1)
+
         catalog = _lookup_local_catalog_price(game["title"], game.get("platform_name") or "")
         if not catalog:
             catalog = _lookup_local_catalog_price(game["title"], "")
@@ -259,12 +273,26 @@ async def bulk_price_update(limit: int = 100, _admin: None = Depends(require_adm
 
     finished_at = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
     set_app_meta("last_bulk_price_update_at", finished_at)
-    set_app_meta("last_bulk_price_update_success", success)
-    set_app_meta("last_bulk_price_update_failed", failed)
-    set_app_meta("last_bulk_price_update_total", len(games))
+    set_app_meta("last_bulk_price_update_success", str(success))
+    set_app_meta("last_bulk_price_update_failed", str(failed))
+    set_app_meta("last_bulk_price_update_total", str(len(game_list)))
     set_app_meta("last_bulk_price_update_error", "")
+    jobs.finish(job_id, success=success, failed=failed)
 
-    return {"success": success, "failed": failed, "total": len(games)}
+
+@router.get("/api/jobs/{job_id}")
+async def get_job_status(job_id: str):
+    """Poll the status of a background job."""
+    job = jobs.get(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    return job
+
+
+@router.get("/api/jobs")
+async def list_active_jobs():
+    """Return all currently running background jobs."""
+    return jobs.list_active()
 
 
 class ManualPriceEntry(BaseModel):

@@ -662,10 +662,16 @@ onMounted(loadInfo)
 }
 
 .kpi-card {
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 0.5rem;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--glass-border);
+  border-radius: 0.75rem;
   padding: 0.75rem;
+  transition: transform 0.2s;
+}
+
+.kpi-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--glass-border-hover);
 }
 
 .kpi-card label {
@@ -784,9 +790,9 @@ onMounted(loadInfo)
 }
 
 .run-card {
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 0.5rem;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--glass-border);
+  border-radius: 0.75rem;
   padding: 0.75rem;
 }
 

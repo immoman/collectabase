@@ -248,6 +248,7 @@
 import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { gamesApi, lookupApi, platformsApi } from '../api'
+import { useGameStore } from '../stores/useGameStore'
 import { notifyError, notifySuccess } from '../composables/useNotifications'
 
 const router = useRouter()
@@ -709,6 +710,8 @@ async function saveGame() {
     if (res.ok) {
       saveForced.value = false
       notifySuccess(isEditMode.value ? 'Game updated.' : 'Game created.')
+      // Invalidate the Pinia cache so GamesList reflects the change immediately
+      useGameStore().refresh()
       router.push(isEditMode.value ? `/game/${editId.value}` : '/')
     } else {
       const detail = res.data?.detail

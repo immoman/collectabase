@@ -637,12 +637,12 @@ onMounted(async () => {
 }
 
 .price-table thead th {
-  background: var(--bg-light);
+  background: rgba(0,0,0,0.2);
   padding: 0.75rem 1rem;
   text-align: left;
   font-weight: 600;
   color: var(--text-muted);
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--glass-border);
   white-space: nowrap;
   user-select: none;
 }
@@ -661,7 +661,7 @@ onMounted(async () => {
 }
 
 .price-table tbody tr {
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--glass-border);
   transition: background 0.1s;
 }
 
@@ -670,7 +670,7 @@ onMounted(async () => {
 }
 
 .price-table tbody tr:hover {
-  background: var(--bg-light);
+  background: rgba(255,255,255,0.02);
 }
 
 .price-table td {
@@ -742,12 +742,15 @@ onMounted(async () => {
 }
 
 .modal {
-  background: var(--bg);
+  background: var(--bg-light);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: var(--card-blur);
+  -webkit-backdrop-filter: var(--card-blur);
   border-radius: 12px;
   padding: 1.5rem;
   width: 100%;
   max-width: 400px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--glass-shadow);
 }
 
 .modal h2 {

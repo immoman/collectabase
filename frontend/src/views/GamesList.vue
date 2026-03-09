@@ -69,12 +69,13 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { gamesApi, platformsApi } from '../api'
+import { useGameStore } from '../stores/useGameStore'
 import { coverEmoji, makeFallbackCoverDataUrl, needsAutoCover } from '../utils/coverFallback'
+import { storeToRefs } from 'pinia'
 
-const games = ref([])
-const platforms = ref([])
-const loading = ref(true)
+const store = useGameStore()
+const { collection: games, platforms, loading } = storeToRefs(store)
+
 const search = ref('')
 const selectedPlatform = ref('')
 const selectedType = ref('')
@@ -173,29 +174,7 @@ function compareGames(a, b, mode) {
   return compareText(a.title, b.title)
 }
 
-async function loadData() {
-  try {
-    const [gamesRes, platformsRes] = await Promise.all([
-      gamesApi.list(),
-      platformsApi.list()
-    ])
-    const gamesData = gamesRes.data
-    const platformsData = platformsRes.data
-    games.value = Array.isArray(gamesData) ? gamesData : []
-    platforms.value = Array.isArray(platformsData) ? platformsData : []
-  } catch (e) {
-    console.error('Failed to load data:', e)
-    // Try to at least load platforms so the filter stays functional
-    try {
-      const platformsRes = await platformsApi.list()
-      platforms.value = platformsRes.data || []
-    } catch {}
-  } finally {
-    loading.value = false
-  }
-}
-
-onMounted(loadData)
+onMounted(() => store.load())
 </script>
 
 <style scoped>
