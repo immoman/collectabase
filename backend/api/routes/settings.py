@@ -26,7 +26,7 @@ def _env_any(*names: str) -> str:
     meta_keys = [f"cfg:{name.lower()}" for name in names]
     meta = get_app_meta_many(meta_keys)
     for key in meta_keys:
-        value = str(meta.get(key, {}).get("value", "")).strip()
+        value = str(meta.get(key, "")).strip()
         if value:
             return value
     return ""
@@ -177,7 +177,7 @@ async def settings_info():
     admin_status = admin_protection_status()
 
     def _meta_value(key, default=None):
-        return meta.get(key, {}).get("value", default)
+        return meta.get(key, default)
 
     covered_items = max(total_items - missing_covers, 0)
     cover_coverage_pct = round((covered_items / total_items) * 100, 1) if total_items else 0.0

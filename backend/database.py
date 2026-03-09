@@ -1,5 +1,6 @@
 import json
 import os
+from contextlib import contextmanager
 from typing import Any, Dict, Optional
 
 # Import the new SQLAlchemy session manager
@@ -75,6 +76,7 @@ class LegacyDBWrapper:
     def rollback(self):
         self.session.rollback()
 
+@contextmanager
 def get_db():
     db = SessionLocal()
     wrapper = LegacyDBWrapper(db)
