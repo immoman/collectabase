@@ -16,7 +16,6 @@ services:
       - DATABASE_URL=sqlite:////app/data/games.db
       - UPLOADS_DIR=/app/uploads
       - TZ=Europe/Berlin
-      
       # Optional: Uncomment and populate these if you want to set them system-wide instead of via the UI
       # - IGDB_CLIENT_ID=
       # - IGDB_CLIENT_SECRET=
