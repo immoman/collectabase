@@ -57,7 +57,7 @@ def _env_any(*names: str) -> Optional[str]:
     meta_keys = [f"cfg:{name.lower()}" for name in names]
     meta = get_app_meta_many(meta_keys)
     for key in meta_keys:
-        value = str(meta.get(key, {}).get("value", "")).strip()
+        value = str(meta.get(key, "")).strip()
         if value:
             return value
     return None
