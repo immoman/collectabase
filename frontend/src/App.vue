@@ -74,7 +74,7 @@ import NotificationStack from './components/NotificationStack.vue'
   align-items: center;
   gap: 1.5rem;
   padding: 0.875rem 2rem;
-  background: rgba(9, 9, 11, 0.65);
+  background: rgba(9, 9, 11, 0.92);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border-bottom: 1px solid var(--glass-border);

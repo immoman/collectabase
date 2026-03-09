@@ -5,19 +5,54 @@ from typing import Any, Dict, Optional
 # Import the new SQLAlchemy session manager
 from .db.session import SessionLocal
 
+class RowProxy:
+    """Mimics sqlite3.Row – supports both dict-style and integer-style access."""
+    __slots__ = ("_data", "_keys")
+
+    def __init__(self, mapping):
+        self._data = dict(mapping)
+        self._keys = list(mapping.keys())
+
+    def __getitem__(self, key):
+        if isinstance(key, int):
+            return self._data[self._keys[key]]
+        return self._data[key]
+
+    def __contains__(self, key):
+        return key in self._data
+
+    def __iter__(self):
+        return iter(self._data.values())
+
+    def __len__(self):
+        return len(self._data)
+
+    def keys(self):
+        return self._keys
+
+    def values(self):
+        return [self._data[k] for k in self._keys]
+
+    def items(self):
+        return [(k, self._data[k]) for k in self._keys]
+
+    def get(self, key, default=None):
+        return self._data.get(key, default)
+
+
 class CursorWrapper:
-    """Wraps SQLAlchemy CursorResult to behave like a sqlite3 cursor returning dicts."""
+    """Wraps SQLAlchemy CursorResult to behave like a sqlite3 cursor."""
     def __init__(self, result):
         self.result = result
         self.lastrowid = getattr(result, "lastrowid", None)
 
     def fetchone(self):
         row = self.result.fetchone()
-        return dict(row._mapping) if row else None
+        return RowProxy(row._mapping) if row else None
 
     def fetchall(self):
         rows = self.result.fetchall()
-        return [dict(row._mapping) for row in rows]
+        return [RowProxy(row._mapping) for row in rows]
 
 class LegacyDBWrapper:
     """
@@ -53,6 +88,8 @@ def dict_from_row(row) -> Dict[str, Any]:
         return {}
     if isinstance(row, dict):
         return row
+    if isinstance(row, RowProxy):
+        return dict(row.items())
     if hasattr(row, "_mapping"):
         return dict(row._mapping)
     return dict(row)
