@@ -90,8 +90,10 @@ async def _fetch_pricecharting_scrape(title: str, platform_name: str):
                 best_link = None
                 best_score = -1.0
 
-                for a in soup.select("a[href^='/game/']"):
+                for a in soup.select("a[href*='/game/']"):
                     href = a.get("href", "")
+                    if "pricecharting.com" in href:
+                        href = href.split("pricecharting.com")[1]
                     parts = href.strip("/").split("/")
                     if len(parts) < 3 or parts[0] != "game": continue
 
@@ -125,13 +127,16 @@ async def _fetch_pricecharting_scrape(title: str, platform_name: str):
             product_res = await client.get(product_url)
             if product_res.status_code >= 400: return None
 
-        pc_id_match = re.search(r"/(\d+)(?:\?|$)", product_link)
+        pc_id_match = re.search(r"/game/[^/]+/([^?]+)", product_link)
         pc_id = pc_id_match.group(1) if pc_id_match else ""
 
         product_soup = BeautifulSoup(product_res.text, "html.parser")
         product_name = selected_query or query
         h1 = product_soup.select_one("h1#product_name, h1.chart_title")
-        if h1: product_name = h1.get_text(strip=True)
+        if h1:
+            title_text = h1.contents[0] if getattr(h1.contents[0], "strip", None) else h1.get_text(strip=True)
+            if isinstance(title_text, str) and title_text.strip():
+                product_name = title_text.strip()
 
         def get_price(element_id: str) -> Optional[float]:
             el = product_soup.select_one(f"#{element_id} .price, #{element_id}, td.{element_id} .js-price, td.{element_id}")

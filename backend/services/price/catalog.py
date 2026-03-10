@@ -142,7 +142,11 @@ async def scrape_platform_catalog(platform_slug: str, platform_label: str) -> li
                 if not title_cell: continue
                 title = title_cell.get_text(strip=True)
                 href = title_cell.get("href", "")
-                pc_id_match = re.search(r"/game/[^/]+/(.+)$", href)
+                if "pricecharting.com" in href:
+                    href = href.split("pricecharting.com")[1]
+                if not href.startswith("/"):
+                    href = "/" + href
+                pc_id_match = re.search(r"/game/[^/]+/(.+)(?:\?|$)", href)
                 pc_id = pc_id_match.group(1) if pc_id_match else ""
                 page_url = f"https://www.pricecharting.com{href}" if href else ""
 

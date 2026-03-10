@@ -74,15 +74,10 @@ import NotificationStack from './components/NotificationStack.vue'
   align-items: center;
   gap: 1.5rem;
   padding: 0.875rem 2rem;
-  background: var(--bg);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border-bottom: 1px solid var(--glass-border);
   position: sticky;
   top: 0;
   z-index: 100;
   padding-top: max(0.875rem, env(safe-area-inset-top));
-  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
 }
 
 .header-left {

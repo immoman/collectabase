@@ -412,23 +412,21 @@ function normalizeSearch(value) {
   return String(value || '').trim().toLowerCase()
 }
 
-function escapeHtml(value) {
-  return String(value || '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;')
-}
-
 function formatDescriptionHtml(input) {
-  const normalized = normalizeDescriptionInput(input)
-  if (!normalized) return ''
+  let text = String(input || '').trim()
+  if (!text) return ''
 
-  const escaped = escapeHtml(normalized)
-  const withBreaks = escaped.replace(/\r\n|\r|\n/g, '<br>')
-  const urlRegex = /https?:\/\/[^\s<>"']*[^\s<>"'.,;:!?)]/gi
-  return withBreaks.replace(urlRegex, (url) => `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`)
+  // Support basic markdown links [text](url) -> <a href="url" target="_blank" rel="noopener">text</a>
+  text = text.replace(/\[([^\]]+)\]\((https?:\/\/[^\)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>')
+
+  // Convert raw URLs to links (if they are not already inside an href="...")
+  const urlRegex = /(?<!href=["'])(https?:\/\/[^\s<>"'()]+)(?![^<]*>|[^<>]*<\/a>)/gi
+  text = text.replace(urlRegex, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>')
+
+  // Convert pure linebreaks to <br> if they aren't part of existing HTML blocks
+  text = text.replace(/(?:\r\n|\r|\n)/g, '<br>')
+
+  return text
 }
 
 function formatChartDate(dt) {
@@ -1041,6 +1039,7 @@ onMounted(async () => {
 
 .cover-card {
   position: relative;
+  z-index: 2;
   border-radius: 1rem;
   overflow: hidden;
   border: 1px solid var(--glass-border);
