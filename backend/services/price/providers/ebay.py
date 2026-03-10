@@ -1,6 +1,7 @@
 import base64
+import re
 import time
-from typing import Optional
+from typing import Optional, List, Tuple
 
 import httpx
 
@@ -8,12 +9,59 @@ from ..utils import _env_any, _trim_outliers_and_median
 
 _EBAY_TOKEN_CACHE = {"token": None, "expires_at": 0.0}
 
+# Listings whose titles contain these words are almost certainly NOT
+# a single loose game and should be excluded from median calculations.
+_BUNDLE_KEYWORDS = {
+    "bundle", "lot", "sammlung", "konvolut", "paket", "set of",
+    "collection", "wholesale", "bulk", "joblot", "job lot",
+    "console", "konsole", "system", "hardware",
+    "controller", "zubehör", "accessory", "accessories",
+    "defekt", "defective", "broken", "not working", "für bastler",
+    "ersatzteile", "parts only", "as is",
+}
+
+
 def _ebay_credentials():
     client_id = _env_any("EBAY_CLIENT_ID", "EBAY_APP_ID", "EBAY_APPID", "EBAY_CLIENTID")
     client_secret = _env_any("EBAY_CLIENT_SECRET", "EBAY_SECRET", "EBAY_CLIENTSECRET", "EBAY_SECRET_KEY")
     if not client_id or not client_secret:
         return None, None
     return client_id, client_secret
+
+
+def _normalise(text: str) -> str:
+    """Lowercase and collapse whitespace for fuzzy matching."""
+    return re.sub(r"\s+", " ", (text or "").lower().strip())
+
+
+def _title_is_relevant(item_title: str, game_title: str, platform_name: str) -> bool:
+    """Return True if the eBay listing looks like a single copy of
+    the requested game, not a bundle / console / accessory / defect."""
+    norm_item = _normalise(item_title)
+    norm_game = _normalise(game_title)
+
+    # ── Reject listings that contain bundle / defect keywords ──
+    for kw in _BUNDLE_KEYWORDS:
+        if kw in norm_item:
+            return False
+
+    # ── Reject listings with "x Spiele" or "x games" patterns ──
+    if re.search(r"\d+\s*(spiele|games|titles|stück|stk)", norm_item):
+        return False
+
+    # ── Require that the listing title contains the core game words ──
+    # Extract the significant words from the game title (≥ 3 chars)
+    game_words = [w for w in norm_game.split() if len(w) >= 3]
+    if not game_words:
+        return True  # very short title, can't filter meaningfully
+
+    # At least half of the game title's significant words should appear
+    matches = sum(1 for w in game_words if w in norm_item)
+    if matches < max(1, len(game_words) * 0.5):
+        return False
+
+    return True
+
 
 async def get_ebay_token() -> Optional[str]:
     client_id, client_secret = _ebay_credentials()
@@ -52,13 +100,14 @@ async def get_ebay_token() -> Optional[str]:
         print(f"eBay token fetch error: {e}")
         return None
 
+
 async def fetch_ebay_market_price(title: str, platform_name: str):
     token = await get_ebay_token()
     if not token:
         return None
 
     query = " ".join(part for part in [title, platform_name] if part).strip()
-    params = {"q": query, "filter": "conditionIds:{2750|3000}", "limit": "30"}
+    params = {"q": query, "filter": "conditionIds:{2750|3000}", "limit": "50"}
     headers = {"Authorization": f"Bearer {token}", "X-EBAY-C-MARKETPLACE-ID": "EBAY_DE"}
 
     try:
@@ -71,13 +120,29 @@ async def fetch_ebay_market_price(title: str, platform_name: str):
 
         payload = res.json()
         items = payload.get("itemSummaries", []) or []
-        prices = []
+
+        prices: List[float] = []
+        skipped = 0
         for item in items:
+            item_title = item.get("title", "")
+
+            # ── Skip irrelevant listings (bundles, consoles, etc.) ──
+            if not _title_is_relevant(item_title, title, platform_name):
+                skipped += 1
+                continue
+
             value = (item.get("price") or {}).get("value")
-            if value is None: continue
-            try: price = float(value)
-            except (TypeError, ValueError): continue
-            if price > 0: prices.append(price)
+            if value is None:
+                continue
+            try:
+                price = float(value)
+            except (TypeError, ValueError):
+                continue
+            if price > 0:
+                prices.append(price)
+
+        if skipped:
+            print(f"eBay: filtered out {skipped} irrelevant listings for '{query}'")
 
         median_price, trimmed, min_price, max_price = _trim_outliers_and_median(prices)
         if median_price is None:
