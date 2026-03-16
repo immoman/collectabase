@@ -19,12 +19,12 @@ async def get_stats():
 
         cursor = db.execute(
             """
-            SELECT p.name,
+            SELECT COALESCE(p.name, 'No Platform') as name,
                    SUM(g.quantity) as count,
                    COALESCE(SUM(COALESCE(g.current_value, 0) * g.quantity), 0) as value,
                    COALESCE(SUM(COALESCE(g.purchase_price, 0) * g.quantity), 0) as invested
             FROM games g
-            JOIN platforms p ON g.platform_id = p.id
+            LEFT JOIN platforms p ON g.platform_id = p.id
             WHERE g.is_wishlist = 0
             GROUP BY p.name
             ORDER BY count DESC

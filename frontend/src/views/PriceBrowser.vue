@@ -132,6 +132,7 @@
                   class="title-link"
                 >{{ item.title }}</a>
                 <span v-else>{{ item.title }}</span>
+                <span v-if="isInCollection(item)" class="owned-badge" title="Already in your collection">✓ Owned</span>
               </td>
               <td class="col-platform">
                 <span class="badge">{{ item.platform }}</span>
@@ -280,9 +281,9 @@ const scraping = ref(false)
 const enrichingLibrary = ref(false)
 const scrapeTarget = ref('all')
 const scrapeResult = ref(null)
-const lastScraped = ref('')
 const linkedGameId = ref(null)
 const applyLoadingId = ref(null)
+const libraryMarkers = ref(new Set()) // Combined "Title|Platform" keys
 const route = useRoute()
 const router = useRouter()
 
@@ -326,6 +327,27 @@ async function loadPlatforms() {
   } catch (e) {
     console.error('Failed to load catalog platforms:', e)
   }
+}
+
+async function loadLibraryMarkers() {
+  try {
+    const res = await gamesApi.list()
+    if (res.ok && Array.isArray(res.data)) {
+      const markers = new Set()
+      res.data.forEach(g => {
+        const key = `${String(g.title).toLowerCase()}|${String(g.platform_name).toLowerCase()}`
+        markers.add(key)
+      })
+      libraryMarkers.value = markers
+    }
+  } catch (e) {
+    console.error('Failed to load library markers:', e)
+  }
+}
+
+function isInCollection(item) {
+  const key = `${String(item.title).toLowerCase()}|${String(item.platform).toLowerCase()}`
+  return libraryMarkers.value.has(key)
 }
 
 function onSearchInput() {
@@ -517,6 +539,7 @@ onMounted(async () => {
   }
 
   await loadPlatforms()
+  await loadLibraryMarkers()
   if (routePlatform) {
     const matched = platforms.value.find(p => String(p).toLowerCase() === routePlatform.toLowerCase())
     selectedPlatform.value = matched || routePlatform
@@ -704,6 +727,20 @@ onMounted(async () => {
 .title-link:hover {
   color: var(--primary);
   text-decoration: underline;
+}
+
+.owned-badge {
+  display: inline-block;
+  margin-left: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.15rem 0.5rem;
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+  border-radius: 4px;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .price {

@@ -748,9 +748,16 @@ async function saveGame() {
   saving.value = true
   duplicateWarning.value = null
   try {
+    const payload = { ...game.value }
+    if (!payload.platform_id) {
+      payload.platform_id = null
+    } else {
+      payload.platform_id = Number(payload.platform_id) || null
+    }
+
     const res = isEditMode.value
-      ? await gamesApi.update(editId.value, game.value)
-      : await gamesApi.create(game.value, saveForced.value)
+      ? await gamesApi.update(editId.value, payload)
+      : await gamesApi.create(payload, saveForced.value)
     if (res.status === 409) {
       const data = res.data?.detail || res.data || {}
       duplicateWarning.value = { existing_id: data.existing_id }

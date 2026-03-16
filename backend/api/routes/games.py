@@ -123,7 +123,7 @@ async def update_game(game_id: int, game: GameUpdate):
         existing_data = dict_from_row(existing)
         merged = {
             "title": game.title or existing_data["title"],
-            "platform_id": game.platform_id or existing_data["platform_id"],
+            "platform_id": game.platform_id if game.platform_id is not None else existing_data["platform_id"],
             "item_type": game.item_type or existing_data["item_type"],
             "quantity": game.quantity if game.quantity is not None else existing_data["quantity"],
             "barcode": game.barcode if game.barcode is not None else existing_data["barcode"],

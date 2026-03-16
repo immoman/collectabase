@@ -32,59 +32,91 @@
       </div>
 
       <!-- Charts Row -->
-      <div class="charts-row mb-3">
-        <!-- Donut: By Platform -->
-        <div class="card chart-card">
-          <h3 class="mb-2">By Platform</h3>
-          <Doughnut v-if="platformChartData" :data="platformChartData" :options="donutOptions" />
+      <div class="charts-row mb-4">
+        <!-- Donut: By Platform (Count) -->
+        <div class="card chart-card premium-glass">
+          <h3 class="mb-3 flex items-center gap-2">
+            <span class="icon">📊</span> Items by Platform
+          </h3>
+          <div class="chart-container">
+            <Doughnut v-if="platformChartData" :data="platformChartData" :options="donutOptions" />
+          </div>
         </div>
 
+        <!-- Donut: By Platform (Value) -->
+        <div class="card chart-card premium-glass">
+          <h3 class="mb-3 flex items-center gap-2">
+            <span class="icon">💰</span> Value by Platform
+          </h3>
+          <div class="chart-container">
+            <Doughnut v-if="platformValueChartData" :data="platformValueChartData" :options="donutOptions" />
+          </div>
+        </div>
+      </div>
+
+      <div class="charts-row mb-4">
         <!-- Donut: By Condition -->
-        <div class="card chart-card">
-          <h3 class="mb-2">By Condition</h3>
-          <Doughnut v-if="conditionChartData" :data="conditionChartData" :options="donutOptions" />
+        <div class="card chart-card premium-glass">
+          <h3 class="mb-3 flex items-center gap-2">
+            <span class="icon">✨</span> By Condition
+          </h3>
+          <div class="chart-container">
+            <Doughnut v-if="conditionChartData" :data="conditionChartData" :options="donutOptions" />
+          </div>
         </div>
 
         <!-- Bar: Value by Type -->
-        <div class="card chart-card">
-          <h3 class="mb-2">Value by Type</h3>
-          <Bar v-if="typeChartData" :data="typeChartData" :options="barOptions" />
+        <div class="card chart-card premium-glass">
+          <h3 class="mb-3 flex items-center gap-2">
+            <span class="icon">🏷️</span> Value by Type
+          </h3>
+          <div class="chart-container">
+            <Bar v-if="typeChartData" :data="typeChartData" :options="barOptions" />
+          </div>
         </div>
       </div>
 
       <!-- Top Widgets Row -->
-      <div class="top-widgets-row mb-3" v-if="stats.top_valuable?.length || stats.top_gainers?.length">
-        <div class="card widget-card" v-if="stats.top_valuable?.length">
-          <div class="flex flex-between items-center mb-3">
-            <h3 class="m-0">Most Valuable Items</h3>
+      <div class="top-widgets-row mb-4" v-if="stats.top_valuable?.length || stats.top_gainers?.length">
+        <div class="card widget-card premium-glass" v-if="stats.top_valuable?.length">
+          <div class="flex flex-between items-center mb-4">
+            <h3 class="m-0 flex items-center gap-2">
+              <span class="icon">🏆</span> Most Valuable Items
+            </h3>
             <button class="btn btn-sm btn-ghost" @click="showAllValuable = !showAllValuable" v-if="stats.top_valuable.length > 5">
               {{ showAllValuable ? 'Show Less' : 'Show All' }}
             </button>
           </div>
           <div class="widget-list">
-            <router-link :to="`/game/${item.id}`" class="widget-item" v-for="item in visibleValuable" :key="item.id">
-              <img :src="item.cover_url || '/placeholder.png'" class="widget-img" alt="Cover" />
+            <router-link :to="`/game/${item.id}`" class="widget-item premium-hover" v-for="item in visibleValuable" :key="item.id">
+              <div class="widget-img-wrapper">
+                <img :src="item.cover_url || '/placeholder.png'" class="widget-img" alt="Cover" />
+              </div>
               <div class="widget-info">
                 <span class="widget-title">{{ item.title }}</span>
-                <span class="widget-value text-success">€{{ formatNumber(item.current_value) }}</span>
+                <span class="widget-value text-gradient-success">€{{ formatNumber(item.current_value) }}</span>
               </div>
             </router-link>
           </div>
         </div>
 
-        <div class="card widget-card" v-if="stats.top_gainers?.length">
-          <div class="flex flex-between items-center mb-3">
-            <h3 class="m-0">Top Gainers</h3>
+        <div class="card widget-card premium-glass" v-if="stats.top_gainers?.length">
+          <div class="flex flex-between items-center mb-4">
+            <h3 class="m-0 flex items-center gap-2">
+              <span class="icon">📈</span> Top Gainers
+            </h3>
             <button class="btn btn-sm btn-ghost" @click="showAllGainers = !showAllGainers" v-if="stats.top_gainers.length > 5">
               {{ showAllGainers ? 'Show Less' : 'Show All' }}
             </button>
           </div>
           <div class="widget-list">
-            <router-link :to="`/game/${item.id}`" class="widget-item" v-for="item in visibleGainers" :key="item.id">
-              <img :src="item.cover_url || '/placeholder.png'" class="widget-img" alt="Cover" />
+            <router-link :to="`/game/${item.id}`" class="widget-item premium-hover" v-for="item in visibleGainers" :key="item.id">
+              <div class="widget-img-wrapper">
+                <img :src="item.cover_url || '/placeholder.png'" class="widget-img" alt="Cover" />
+              </div>
               <div class="widget-info">
                 <span class="widget-title">{{ item.title }}</span>
-                <span class="widget-value" :class="item.profit_loss >= 0 ? 'text-success' : 'text-error'">
+                <span class="widget-value" :class="item.profit_loss >= 0 ? 'text-gradient-success' : 'text-error'">
                    {{ item.profit_loss >= 0 ? '+' : '' }}€{{ formatNumber(item.profit_loss) }}
                 </span>
               </div>
@@ -94,17 +126,22 @@
       </div>
 
       <!-- Historical Value Chart -->
-      <div class="card chart-card mb-3 history-card">
-        <div class="flex flex-between items-center mb-2">
-          <h3 class="m-0">Value History</h3>
-          <select v-model="historyDays" @change="loadHistory" class="filter-select select-sm">
+      <div class="card chart-card mb-4 history-card premium-glass">
+        <div class="flex flex-between items-center mb-4">
+          <h3 class="m-0 flex items-center gap-2">
+            <span class="icon">📅</span> Value History
+          </h3>
+          <select v-model="historyDays" @change="loadHistory" class="filter-select select-sm premium-select">
             <option :value="30">Last 30 Days</option>
             <option :value="90">Last 90 Days</option>
             <option :value="365">Last Year</option>
           </select>
         </div>
-        <div v-if="historyLoading" class="text-muted">Loading history...</div>
-        <div v-else-if="!historyChartData" class="text-muted">Not enough data to display history yet. It will automatically populate daily.</div>
+        <div v-if="historyLoading" class="loading-state">
+           <div class="spinner"></div>
+           <span>Loading history...</span>
+        </div>
+        <div v-else-if="!historyChartData" class="empty-state">Not enough data to display history yet. It will automatically populate daily.</div>
         <div v-else class="history-chart-wrapper">
           <Line :data="historyChartData" :options="lineOptions" />
         </div>
@@ -219,14 +256,28 @@ const COLORS = [
 
 const platformChartData = computed(() => {
   if (!stats.value.by_platform?.length) return null
-  const top = stats.value.by_platform.slice(0, 9)
+  const top = [...stats.value.by_platform].sort((a,b) => b.count - a.count).slice(0, 9)
   return {
     labels: top.map(p => p.name),
     datasets: [{
       data: top.map(p => p.count),
       backgroundColor: COLORS,
-      borderWidth: 2,
-      borderColor: '#1a1a2e'
+      borderWidth: 0,
+      hoverOffset: 15
+    }]
+  }
+})
+
+const platformValueChartData = computed(() => {
+  if (!stats.value.by_platform?.length) return null
+  const top = [...stats.value.by_platform].sort((a,b) => b.value - a.value).slice(0, 9)
+  return {
+    labels: top.map(p => p.name),
+    datasets: [{
+      data: top.map(p => p.value),
+      backgroundColor: COLORS,
+      borderWidth: 0,
+      hoverOffset: 15
     }]
   }
 })
@@ -238,8 +289,8 @@ const conditionChartData = computed(() => {
     datasets: [{
       data: stats.value.by_condition.map(c => c.count),
       backgroundColor: ['#10b981', '#f59e0b', '#ef4444', '#6366f1', '#8b5cf6'],
-      borderWidth: 2,
-      borderColor: '#1a1a2e'
+      borderWidth: 0,
+      hoverOffset: 15
     }]
   }
 })
@@ -367,21 +418,64 @@ onMounted(() => {
 <style scoped>
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 1.5rem;
 }
 
 .stat-card { 
   text-align: center; 
-  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s;
+  transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
   cursor: default;
+  background: linear-gradient(135deg, rgba(30, 30, 50, 0.7), rgba(20, 20, 40, 0.8));
+  border: 1px solid rgba(139, 92, 246, 0.2);
+  position: relative;
+  overflow: hidden;
 }
+
+.stat-card::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(139, 92, 246, 0.1) 0%, transparent 70%);
+  opacity: 0;
+  transition: opacity 0.4s;
+}
+
+.stat-card:hover::after {
+  opacity: 1;
+}
+
 .stat-card:hover { 
-  transform: translateY(-5px);
-  box-shadow: 0 12px 24px rgba(0,0,0,0.3), 0 0 20px rgba(139, 92, 246, 0.15);
+  transform: translateY(-8px) scale(1.02);
+  box-shadow: 0 15px 35px rgba(0,0,0,0.4), 0 0 25px rgba(139, 92, 246, 0.2);
+  border-color: rgba(139, 92, 246, 0.4);
 }
-.stat-card h3 { font-size: 0.875rem; color: var(--text-muted); margin-bottom: 0.5rem; }
-.stat-value { font-size: 2rem; font-weight: bold; transition: color 0.3s; }
+
+.stat-card h3 { 
+  font-size: 0.9rem; 
+  color: var(--text-muted); 
+  margin-bottom: 0.5rem; 
+  text-transform: uppercase; 
+  letter-spacing: 1px;
+}
+
+.stat-value { 
+  font-size: 2.25rem; 
+  font-weight: 800; 
+  background: linear-gradient(to bottom, #fff, #94a3b8);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.text-success { color: #10b981; }
+.text-gradient-success {
+  background: linear-gradient(45deg, #10b981, #22d3ee);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
 
 .charts-row {
   display: grid;
@@ -389,44 +483,28 @@ onMounted(() => {
   gap: 1.5rem;
 }
 
-@media (max-width: 639px) {
-  .charts-row, .top-widgets-row { grid-template-columns: 1fr; }
-
-  /* KPI cards: 2 per row on phones */
-  .stats-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 0.75rem;
-  }
-  .stat-value { font-size: 1.5rem; }
-
-  /* Tables: allow horizontal scroll instead of overflowing */
-  .stats-table {
-    display: block;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    white-space: nowrap;
-  }
-  .stats-table th,
-  .stats-table td {
-    padding: 0.5rem;
-    font-size: 0.875rem;
-  }
-
-  .history-chart-wrapper {
-    height: 250px;
-  }
+.premium-glass {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  border-radius: var(--radius-lg);
+  transition: all 0.3s ease;
 }
 
-.chart-card { padding: 1.5rem; }
-
-.history-card {
-  width: 100%;
+.premium-glass:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.15);
 }
 
-.history-chart-wrapper {
+.chart-card { padding: 1.8rem; }
+.chart-container {
   position: relative;
-  height: 320px;
-  width: 100%;
+  height: 280px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 .top-widgets-row {
@@ -434,44 +512,97 @@ onMounted(() => {
   grid-template-columns: 1fr 1fr;
   gap: 1.5rem;
 }
-.widget-card { padding: 1.5rem; }
-.widget-list { display: flex; flex-direction: column; gap: 0.75rem; }
+
+.widget-card { padding: 1.8rem; }
+.widget-list { display: flex; flex-direction: column; gap: 1rem; }
+
 .widget-item {
   display: flex;
   align-items: center;
-  gap: 1rem;
-  padding: 0.6rem;
-  background: rgba(255,255,255,0.03);
-  border: 1px solid rgba(255,255,255,0.05);
+  gap: 1.25rem;
+  padding: 0.75rem;
+  background: rgba(255,255,255,0.02);
   border-radius: var(--radius-md);
   text-decoration: none;
   color: inherit;
-  transition: all 0.2s;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid transparent;
 }
-.widget-item:hover {
+
+.premium-hover:hover {
   background: rgba(255,255,255,0.06);
-  border-color: rgba(139, 92, 246, 0.3);
-  transform: translateX(4px);
+  border-color: rgba(139, 92, 246, 0.4);
+  transform: translateX(8px);
+  box-shadow: -4px 0 15px rgba(139, 92, 246, 0.1);
 }
-.widget-img { width: 44px; height: 60px; object-fit: cover; border-radius: var(--radius-sm); box-shadow: 0 4px 8px rgba(0,0,0,0.2); }
-.widget-info { display: flex; flex-direction: column; overflow: hidden; }
-.widget-title { 
+
+.widget-img-wrapper {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.widget-img { 
+  width: 50px; 
+  height: 68px; 
+  object-fit: cover; 
+  border-radius: var(--radius-sm); 
+  box-shadow: 0 5px 15px rgba(0,0,0,0.4);
+  transition: transform 0.3s;
+}
+
+.widget-item:hover .widget-img {
+  transform: scale(1.05);
+}
+
+.widget-info { display: flex; flex-direction: column; gap: 0.25rem; }
+.widget-title { font-weight: 600; font-size: 1rem; }
+.widget-value { font-size: 0.9rem; font-weight: 700; }
+
+.history-card { padding: 1.8rem; }
+.history-chart-wrapper { height: 350px; width: 100%; }
+
+.stats-table { width: 100%; border-collapse: separate; border-spacing: 0 0.5rem; }
+.stats-table th { 
+  padding: 1rem; 
   font-weight: 600; 
-  font-size: 0.95rem; 
-  line-height: 1.2; 
-  margin-bottom: 0.25rem;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  text-transform: uppercase; 
+  font-size: 0.75rem; 
+  letter-spacing: 1px;
 }
-.widget-value { font-size: 0.85rem; font-weight: 700; }
+.stats-table td { 
+  padding: 1rem; 
+  background: rgba(255,255,255,0.02);
+  border-top: 1px solid rgba(255,255,255,0.05);
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.stats-table td:first-child { border-left: 1px solid rgba(255,255,255,0.05); border-radius: 8px 0 0 8px; }
+.stats-table td:last-child { border-right: 1px solid rgba(255,255,255,0.05); border-radius: 0 8px 8px 0; }
 
-.stats-table { width: 100%; border-collapse: collapse; }
-.stats-table th,
-.stats-table td { text-align: left; padding: 0.75rem; border-bottom: 1px solid var(--glass-border); }
-.stats-table th { color: var(--text-muted); font-size: 0.875rem; background: rgba(0,0,0,0.2); }
-.stats-table tr:hover { background: rgba(255,255,255,0.02); }
+.loading-state, .empty-state {
+  height: 350px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  color: var(--text-muted);
+}
 
-.text-success { color: var(--success); }
-.text-error { color: #ef4444; }
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(139, 92, 246, 0.1);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: rotate 1s linear infinite;
+}
+
+@keyframes rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@media (max-width: 768px) {
+  .charts-row, .top-widgets-row { grid-template-columns: 1fr; }
+}
 </style>
