@@ -6,6 +6,7 @@ from fastapi import APIRouter
 from ..errors import conflict, not_found
 from ..schemas import GameCreate, GameUpdate, PlatformCreate
 from ...database import dict_from_row, get_db
+from ...services.lookup_service import cache_remote_cover
 
 router = APIRouter()
 
@@ -52,6 +53,9 @@ async def create_game(game: GameCreate, force: bool = False):
             if existing:
                 raise conflict("Game already exists", {"existing_id": existing[0]})
 
+    # Cache remote cover image locally before saving
+    cover_url = await cache_remote_cover(game.cover_url)
+
     with get_db() as db:
         cursor = db.execute(
             '''
@@ -60,8 +64,9 @@ async def create_game(game: GameCreate, force: bool = False):
                 publisher, developer, genre, description, cover_url,
                 region, condition, completeness, location,
                 purchase_date, purchase_price, current_value, notes,
-                is_wishlist, wishlist_max_price
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                is_wishlist, wishlist_max_price,
+                character_name, series_name, scale, funko_number, vinyl_format
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ''',
             (
                 game.title,
@@ -78,7 +83,7 @@ async def create_game(game: GameCreate, force: bool = False):
                 game.developer,
                 game.genre,
                 game.description,
-                game.cover_url,
+                cover_url,
                 game.region,
                 game.condition,
                 game.completeness,
@@ -89,6 +94,11 @@ async def create_game(game: GameCreate, force: bool = False):
                 game.notes,
                 1 if game.is_wishlist else 0,
                 game.wishlist_max_price,
+                game.character_name,
+                game.series_name,
+                game.scale,
+                game.funko_number,
+                game.vinyl_format,
             ),
         )
         db.commit()
@@ -121,6 +131,12 @@ async def update_game(game_id: int, game: GameUpdate):
             raise not_found("Game not found")
 
         existing_data = dict_from_row(existing)
+
+        # Cache remote cover image locally if it changed
+        new_cover = game.cover_url if game.cover_url is not None else existing_data["cover_url"]
+        if new_cover and new_cover != existing_data.get("cover_url"):
+            new_cover = await cache_remote_cover(new_cover)
+
         merged = {
             "title": game.title or existing_data["title"],
             "platform_id": game.platform_id if game.platform_id is not None else existing_data["platform_id"],
@@ -136,7 +152,7 @@ async def update_game(game_id: int, game: GameUpdate):
             "developer": game.developer if game.developer is not None else existing_data["developer"],
             "genre": game.genre if game.genre is not None else existing_data["genre"],
             "description": game.description if game.description is not None else existing_data["description"],
-            "cover_url": game.cover_url if game.cover_url is not None else existing_data["cover_url"],
+            "cover_url": new_cover if new_cover is not None else existing_data["cover_url"],
             "region": game.region if game.region is not None else existing_data["region"],
             "condition": game.condition if game.condition is not None else existing_data["condition"],
             "completeness": game.completeness if game.completeness is not None else existing_data["completeness"],
@@ -153,6 +169,11 @@ async def update_game(game_id: int, game: GameUpdate):
                 if game.wishlist_max_price is not None
                 else existing_data["wishlist_max_price"]
             ),
+            "character_name": game.character_name if game.character_name is not None else existing_data.get("character_name"),
+            "series_name": game.series_name if game.series_name is not None else existing_data.get("series_name"),
+            "scale": game.scale if game.scale is not None else existing_data.get("scale"),
+            "funko_number": game.funko_number if game.funko_number is not None else existing_data.get("funko_number"),
+            "vinyl_format": game.vinyl_format if game.vinyl_format is not None else existing_data.get("vinyl_format"),
         }
 
         db.execute(
@@ -162,7 +183,9 @@ async def update_game(game_id: int, game: GameUpdate):
                 publisher = ?, developer = ?, genre = ?, description = ?, cover_url = ?,
                 region = ?, condition = ?, completeness = ?, location = ?,
                 purchase_date = ?, purchase_price = ?, current_value = ?, notes = ?,
-                is_wishlist = ?, wishlist_max_price = ?, updated_at = CURRENT_TIMESTAMP
+                is_wishlist = ?, wishlist_max_price = ?,
+                character_name = ?, series_name = ?, scale = ?, funko_number = ?, vinyl_format = ?,
+                updated_at = CURRENT_TIMESTAMP
             WHERE id = ?
             """,
             (
@@ -191,6 +214,11 @@ async def update_game(game_id: int, game: GameUpdate):
                 merged["notes"],
                 1 if merged["is_wishlist"] else 0,
                 merged["wishlist_max_price"],
+                merged["character_name"],
+                merged["series_name"],
+                merged["scale"],
+                merged["funko_number"],
+                merged["vinyl_format"],
                 game_id,
             ),
         )

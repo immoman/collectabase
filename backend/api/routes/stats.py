@@ -26,6 +26,7 @@ async def get_stats():
             FROM games g
             LEFT JOIN platforms p ON g.platform_id = p.id
             WHERE g.is_wishlist = 0
+              AND COALESCE(g.item_type, 'game') IN ('game', 'console', 'controller', 'accessory')
             GROUP BY p.name
             ORDER BY count DESC
             """

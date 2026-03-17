@@ -81,6 +81,7 @@
               <option value="manga">Manga</option>
               <option value="comic">Comic</option>
               <option value="funko">Funko Pop</option>
+              <option value="vinyl">Vinyl</option>
               <option value="misc">Misc</option>
             </select>
           </div>
@@ -177,6 +178,53 @@
             <label>Publisher</label>
             <input v-model="game.publisher" />
           </div>
+
+          <!-- Figure / Anime Figure fields -->
+          <template v-if="game.item_type === 'figure'">
+            <div class="form-group">
+              <label>Character</label>
+              <input v-model="game.character_name" placeholder="e.g. Rem, Saber" />
+            </div>
+            <div class="form-group">
+              <label>Series</label>
+              <input v-model="game.series_name" placeholder="e.g. Re:Zero, Fate" />
+            </div>
+            <div class="form-group">
+              <label>Scale</label>
+              <input v-model="game.scale" placeholder="e.g. 1/7, Nendoroid, figma" />
+            </div>
+          </template>
+
+          <!-- Funko Pop fields -->
+          <template v-if="game.item_type === 'funko'">
+            <div class="form-group">
+              <label>Character</label>
+              <input v-model="game.character_name" placeholder="e.g. Goku, Batman" />
+            </div>
+            <div class="form-group">
+              <label>Series</label>
+              <input v-model="game.series_name" placeholder="e.g. Dragon Ball Z, DC" />
+            </div>
+            <div class="form-group">
+              <label>Funko #</label>
+              <input v-model="game.funko_number" placeholder="e.g. 123" />
+            </div>
+          </template>
+
+          <!-- Vinyl fields -->
+          <template v-if="game.item_type === 'vinyl'">
+            <div class="form-group">
+              <label>Format</label>
+              <select v-model="game.vinyl_format">
+                <option value="">Select</option>
+                <option>LP</option>
+                <option>EP</option>
+                <option>Single</option>
+                <option>Double LP</option>
+                <option>Box Set</option>
+              </select>
+            </div>
+          </template>
 
           <div class="form-group full-width">
             <label>Cover Photo</label>
@@ -374,7 +422,12 @@ const game = ref({
   publisher: null,
   release_date: null,
   location: null,
-  wishlist_max_price: null
+  wishlist_max_price: null,
+  character_name: null,
+  series_name: null,
+  scale: null,
+  funko_number: null,
+  vinyl_format: null
 })
 
 async function loadPlatforms() {
@@ -413,7 +466,12 @@ async function loadGame(id) {
         publisher: data.publisher || null,
         release_date: data.release_date || null,
         location: data.location || null,
-        wishlist_max_price: data.wishlist_max_price ?? null
+        wishlist_max_price: data.wishlist_max_price ?? null,
+        character_name: data.character_name || null,
+        series_name: data.series_name || null,
+        scale: data.scale || null,
+        funko_number: data.funko_number || null,
+        vinyl_format: data.vinyl_format || null
       }
     }
   } catch (e) {
@@ -699,12 +757,32 @@ function fillFromIgdb(result) {
 
   if (result.source === 'hobbydb') {
     game.value.hobbydb_id = result.hobbydb_id
-    game.value.item_type = 'figure' // Or 'funko' depending on HobbyDB category
+    game.value.publisher = result.publisher || game.value.publisher
+    game.value.description = result.description || game.value.description
+    // Auto-detect Funko Pop vs generic figure from title
+    const titleLower = (result.title || '').toLowerCase()
+    if (titleLower.includes('funko') || titleLower.includes('pop!') || titleLower.includes('pop vinyl')) {
+      game.value.item_type = 'funko'
+      // Try to extract Funko number from title (e.g. "#123" or "No. 123")
+      const funkoMatch = (result.title || '').match(/#(\d+)|No\.?\s*(\d+)/i)
+      if (funkoMatch) game.value.funko_number = funkoMatch[1] || funkoMatch[2]
+    } else {
+      game.value.item_type = 'figure'
+    }
+    // Extract character/series from title if present
+    if (result.character_name) game.value.character_name = result.character_name
+    if (result.series_name) game.value.series_name = result.series_name
+    if (result.scale) game.value.scale = result.scale
   }
 
   if (result.source === 'mfc') {
     game.value.mfc_id = result.mfc_id
+    game.value.publisher = result.publisher || game.value.publisher
+    game.value.description = result.description || game.value.description
     game.value.item_type = 'figure'
+    if (result.character_name) game.value.character_name = result.character_name
+    if (result.series_name) game.value.series_name = result.series_name
+    if (result.scale) game.value.scale = result.scale
   }
 
   igdbResults.value = []

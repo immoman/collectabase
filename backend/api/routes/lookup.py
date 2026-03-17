@@ -122,11 +122,21 @@ async def lookup_comicvine(search: TitleSearch):
 
 @router.post("/api/lookup/hobbydb")
 async def lookup_hobbydb(search: TitleSearch):
-    return await lookup_hobbydb_title(search.title)
+    data = await lookup_hobbydb_title(search.title)
+    # Cache cover images locally so search result thumbnails don't break
+    for result in data.get("results", []):
+        if result.get("cover_url"):
+            result["cover_url"] = await cache_remote_cover(result["cover_url"])
+    return data
 
 @router.post("/api/lookup/mfc")
 async def lookup_mfc(search: TitleSearch):
-    return await lookup_mfc_title(search.title)
+    data = await lookup_mfc_title(search.title)
+    # Cache cover images locally so search result thumbnails don't break
+    for result in data.get("results", []):
+        if result.get("cover_url"):
+            result["cover_url"] = await cache_remote_cover(result["cover_url"])
+    return data
 
 
 @router.post("/api/lookup/barcode")

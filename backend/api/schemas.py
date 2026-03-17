@@ -40,6 +40,11 @@ class GameCreate(BaseModel):
     notes: Optional[str] = None
     is_wishlist: bool = False
     wishlist_max_price: Optional[float] = None
+    character_name: Optional[str] = None
+    series_name: Optional[str] = None
+    scale: Optional[str] = None
+    funko_number: Optional[str] = None
+    vinyl_format: Optional[str] = None
 
 
 class GameUpdate(GameCreate):
@@ -68,6 +73,11 @@ class GameUpdate(GameCreate):
     notes: Optional[str] = None
     is_wishlist: Optional[bool] = None
     wishlist_max_price: Optional[float] = None
+    character_name: Optional[str] = None
+    series_name: Optional[str] = None
+    scale: Optional[str] = None
+    funko_number: Optional[str] = None
+    vinyl_format: Optional[str] = None
 
 
 class PlatformCreate(BaseModel):

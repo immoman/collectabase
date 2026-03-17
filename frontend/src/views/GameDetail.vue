@@ -140,6 +140,26 @@
                 <label>Publisher</label>
                 <span>{{ game.publisher }}</span>
               </div>
+              <div v-if="game.character_name" class="detail-item">
+                <label>Character</label>
+                <span>{{ game.character_name }}</span>
+              </div>
+              <div v-if="game.series_name" class="detail-item">
+                <label>Series</label>
+                <span>{{ game.series_name }}</span>
+              </div>
+              <div v-if="game.scale" class="detail-item">
+                <label>Scale</label>
+                <span>{{ game.scale }}</span>
+              </div>
+              <div v-if="game.funko_number" class="detail-item">
+                <label>Funko #</label>
+                <span>{{ game.funko_number }}</span>
+              </div>
+              <div v-if="game.vinyl_format" class="detail-item">
+                <label>Format</label>
+                <span>{{ game.vinyl_format }}</span>
+              </div>
               <div v-if="game.is_wishlist && game.wishlist_max_price" class="detail-item">
                 <label>Max Wishlist Price</label>
                 <span>€{{ game.wishlist_max_price }}</span>

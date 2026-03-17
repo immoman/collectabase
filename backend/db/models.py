@@ -44,6 +44,11 @@ class Game(Base):
     is_wishlist = Column(Integer, server_default="0")
     wishlist_max_price = Column(Float)
     item_type = Column(String, server_default="game")
+    character_name = Column(String)
+    series_name = Column(String)
+    scale = Column(String)
+    funko_number = Column(String)
+    vinyl_format = Column(String)
     created_at = Column(String, server_default=func.current_timestamp())
     updated_at = Column(String, server_default=func.current_timestamp(), onupdate=func.current_timestamp())
 
