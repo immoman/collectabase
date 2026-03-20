@@ -190,3 +190,12 @@ If Collectabase is useful to you and you want to support development, you can su
 ☕ Ko-fi: https://ko-fi.com/thedachlatte007
 
 Your support helps with development, testing, and maintenance.
+
+---
+## Legal / Disclaimer
+
+This project is provided "as is", without warranty of any kind.
+
+Collectabase may integrate with or display third-party data, images, or metadata. All respective trademarks, images, and content remain the property of their respective owners.
+
+Users are responsible for ensuring their usage complies with applicable laws and the terms of any third-party services they connect to.
