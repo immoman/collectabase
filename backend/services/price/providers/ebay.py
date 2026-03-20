@@ -9,16 +9,25 @@ from ..utils import _env_any, _trim_outliers_and_median
 
 _EBAY_TOKEN_CACHE = {"token": None, "expires_at": 0.0}
 
-# Listings whose titles contain these words are almost certainly NOT
-# a single loose game and should be excluded from median calculations.
-_BUNDLE_KEYWORDS = {
+# ── Base bundle / defect keywords (always filtered) ──
+_BUNDLE_KEYWORDS_ALWAYS = {
     "bundle", "lot", "sammlung", "konvolut", "paket", "set of",
-    "collection", "wholesale", "bulk", "joblot", "job lot",
-    "console", "konsole", "system", "hardware",
-    "controller", "zubehör", "accessory", "accessories",
+    "wholesale", "bulk", "joblot", "job lot",
     "defekt", "defective", "broken", "not working", "für bastler",
     "ersatzteile", "parts only", "as is",
 }
+
+# ── Additional keywords filtered only for *games* ──
+_BUNDLE_KEYWORDS_GAME_ONLY = {
+    "console", "konsole", "system", "hardware",
+    "controller", "zubehör", "accessory", "accessories",
+}
+
+# ── Item types that are collectibles (not platform-bound games) ──
+_COLLECTIBLE_TYPES = {"funko", "figure", "comic", "vinyl", "manga", "art"}
+
+# ── Item types where platform name should NOT be appended to query ──
+_NO_PLATFORM_TYPES = {"funko", "figure", "comic", "vinyl", "manga", "art"}
 
 
 def _ebay_credentials():
@@ -34,14 +43,29 @@ def _normalise(text: str) -> str:
     return re.sub(r"\s+", " ", (text or "").lower().strip())
 
 
-def _title_is_relevant(item_title: str, game_title: str, platform_name: str) -> bool:
+def _build_bundle_keywords(item_type: str) -> set:
+    """Return the set of bundle keywords appropriate for the given item type."""
+    keywords = set(_BUNDLE_KEYWORDS_ALWAYS)
+    item_type_lower = (item_type or "game").lower()
+    # Only add game-specific keywords (console, controller, etc.) for actual games
+    if item_type_lower in ("game", ""):
+        keywords |= _BUNDLE_KEYWORDS_GAME_ONLY
+    # For collectibles, also filter "collection" to avoid "lot/collection" listings
+    if item_type_lower not in _COLLECTIBLE_TYPES:
+        keywords.add("collection")
+    return keywords
+
+
+def _title_is_relevant(item_title: str, game_title: str, platform_name: str, item_type: str = "game") -> bool:
     """Return True if the eBay listing looks like a single copy of
-    the requested game, not a bundle / console / accessory / defect."""
+    the requested item, not a bundle / defect / unrelated listing."""
     norm_item = _normalise(item_title)
     norm_game = _normalise(game_title)
 
+    bundle_keywords = _build_bundle_keywords(item_type)
+
     # ── Reject listings that contain bundle / defect keywords ──
-    for kw in _BUNDLE_KEYWORDS:
+    for kw in bundle_keywords:
         if kw in norm_item:
             return False
 
@@ -49,7 +73,7 @@ def _title_is_relevant(item_title: str, game_title: str, platform_name: str) -> 
     if re.search(r"\d+\s*(spiele|games|titles|stück|stk)", norm_item):
         return False
 
-    # ── Require that the listing title contains the core game words ──
+    # ── Require that the listing title contains the core item words ──
     # Extract the significant words from the game title (≥ 3 chars)
     game_words = [w for w in norm_game.split() if len(w) >= 3]
     if not game_words:
@@ -101,13 +125,26 @@ async def get_ebay_token() -> Optional[str]:
         return None
 
 
-async def fetch_ebay_market_price(title: str, platform_name: str):
+async def fetch_ebay_market_price(title: str, platform_name: str, item_type: str = "game"):
     token = await get_ebay_token()
     if not token:
         return None
 
-    query = " ".join(part for part in [title, platform_name] if part).strip()
-    params = {"q": query, "filter": "conditionIds:{2750|3000}", "limit": "50"}
+    item_type_lower = (item_type or "game").lower()
+
+    # Don't append platform name for non-game collectibles (it pollutes the query)
+    if item_type_lower in _NO_PLATFORM_TYPES:
+        query = title.strip()
+    else:
+        query = " ".join(part for part in [title, platform_name] if part).strip()
+
+    # Collectibles are often sold new-in-box → include New condition (1000)
+    if item_type_lower in _COLLECTIBLE_TYPES:
+        condition_filter = "conditionIds:{1000|1500|2750|3000}"
+    else:
+        condition_filter = "conditionIds:{2750|3000}"
+
+    params = {"q": query, "filter": condition_filter, "limit": "50"}
     headers = {"Authorization": f"Bearer {token}", "X-EBAY-C-MARKETPLACE-ID": "EBAY_DE"}
 
     try:
@@ -126,8 +163,8 @@ async def fetch_ebay_market_price(title: str, platform_name: str):
         for item in items:
             item_title = item.get("title", "")
 
-            # ── Skip irrelevant listings (bundles, consoles, etc.) ──
-            if not _title_is_relevant(item_title, title, platform_name):
+            # ── Skip irrelevant listings (bundles, defects, etc.) ──
+            if not _title_is_relevant(item_title, title, platform_name, item_type_lower):
                 skipped += 1
                 continue
 
@@ -157,3 +194,4 @@ async def fetch_ebay_market_price(title: str, platform_name: str):
     except Exception as e:
         print(f"eBay browse error for '{query}': {e}")
         return None
+

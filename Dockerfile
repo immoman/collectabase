@@ -39,5 +39,9 @@ RUN mkdir -p /app/data /app/uploads
 # Expose the API port
 EXPOSE 8000
 
+# Health check for Docker / Portainer
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
+  CMD curl -f http://localhost:8000/api/health || exit 1
+
 # Run migrations then start Uvicorn
 CMD ["./entrypoint.sh"]

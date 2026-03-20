@@ -56,7 +56,7 @@ async def fetch_market_price(game_id: int, source: Optional[str] = None):
     if source == 'ebay':
         if not ebay_enabled:
             return {"error": "eBay is not configured in Settings."}
-        ebay = await fetch_ebay_market_price(game["title"], game.get("platform_name") or "")
+        ebay = await fetch_ebay_market_price(game["title"], game.get("platform_name") or "", item_type)
         if ebay:
             with get_db() as db:
                 db.execute(
@@ -129,7 +129,7 @@ async def fetch_market_price(game_id: int, source: Optional[str] = None):
             return {"market_price": loose_eur, "source": "pricecharting", "condition": "loose"}
 
     if ebay_enabled:
-        ebay = await fetch_ebay_market_price(game["title"], game.get("platform_name") or "")
+        ebay = await fetch_ebay_market_price(game["title"], game.get("platform_name") or "", item_type)
         if ebay:
             with get_db() as db:
                 db.execute(

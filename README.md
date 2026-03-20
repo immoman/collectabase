@@ -1,94 +1,182 @@
-# Collectabase 🕹️
+# Collectabase 🎮
 
-A self-hosted, sleek, and automated personal game collection manager. Your free, robust alternative to CLZ Games.
+A self-hosted, sleek, and fully automated **collection manager** for games, consoles, Funko Pops, anime figures, comics, and more. Your free, robust alternative to CLZ Games — with smarter pricing, beautiful UI, and complete control over your data.
 
-![Collectabase Preview](https://via.placeholder.com/800x400.png?text=Collectabase+Preview) <!-- Add your screenshot here! -->
+<!-- Save your screenshots as: docs/screenshot-collection.png, docs/screenshot-detail.png, docs/screenshot-stats.png, docs/screenshot-prices.png -->
 
-## ✨ Features
+| Collection Overview | Item Detail |
+|:---:|:---:|
+| ![Collection](docs/screenshot-collection.png) | ![Detail](docs/screenshot-detail.png) |
 
-- **📊 Track Your Collection**: Physical games, consoles, accessories.
-- **💰 Market Value Tracking**: Automated background pricing via PriceCharting and eBay.
-- **🔍 Auto-Enrichment**: Instant cover art and metadata matching via IGDB & RAWG.
-- **📱 Responsive Glassmorphism UI**: Beautiful, premium dark mode interface.
-- **📥 Import/Export**: Easy transition from CLZ Games (CSV Import).
-- **📋 Wishlist**: Track games you want and the max price you're willing to pay.
-- **📈 Statistics**: Insights on your collection's value, profit/loss, and platform distribution.
-- **⚡ Background Jobs**: Mass scraping and cover enrichment running silently in the background.
-
-## 🏗️ Tech Stack
-
-Collectabase has been completely architected for long-term stability:
-- **Backend**: FastAPI + Python 3.11, SQLAlchemy (ORM), Alembic (Migrations), SQLite
-- **Frontend**: Vue 3 (Composition API) + Vite, Pinia (State Management), Chart.js
-- **Deployment**: Node/Nginx + Docker / Portainer
+| Statistics | Price Browser |
+|:---:|:---:|
+| ![Stats](docs/screenshot-stats.png) | ![Prices](docs/screenshot-prices.png) |
 
 ---
 
-## 🚀 Quick Start (Docker / Portainer)
+## ✨ Features
 
-The easiest and recommended way to run Collectabase is via Docker Compose or a Portainer stack.
+### 📊 Collection Management
+- Track **games, consoles, controllers, accessories, Funko Pops, anime figures, comics, and vinyl** — all in one place
+- Multi-image support with primary cover selection
+- Quantity tracking, condition grading, completeness status
+- Barcode scanning (UPC/EAN) for quick item lookup
+- Wishlist with max price alerts
 
-### 1. Setup Stack in Portainer
+### 💰 Smart Price Tracking
+- **Automated market pricing** via PriceCharting catalog scraping
+- **eBay Browse API** as intelligent fallback with item-type-aware filtering
+- **IQR-based outlier detection** for accurate median prices
+- Background bulk price updates on your schedule
+- Full price history per item with interactive charts
+- Manual price override — you stay in control
 
-Create a new Stack in Portainer and use the provided `docker-compose.yml`.
+### 🔍 Auto-Enrichment
+- Cover art and metadata via **IGDB**, **RAWG**, and **GameTDB**
+- Funko Pop images via **eBay proxy** (no HobbyDB API needed)
+- Anime figure images via **eBay proxy** (no MFC API needed)
+- Comic metadata via **ComicVine**
+- Local image caching — no broken hotlinks
 
-Alternatively, via pure Docker:
+### 📈 Analytics & Insights
+- Collection value over time (daily snapshots)
+- Profit/loss per item and platform
+- Top valuable items & biggest gainers
+- Platform, condition, and item type breakdowns
+
+### 🖥️ Premium UI
+- Responsive glassmorphism dark mode design
+- Collapsible desktop sidebar + mobile bottom navigation
+- Installable as **Progressive Web App** (PWA)
+- Full keyboard/barcode scanner support
+
+---
+
+## 🏗️ Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| **Backend** | FastAPI · Python 3.11 · SQLAlchemy · Alembic · SQLite |
+| **Frontend** | Vue 3 (Composition API) · Vite · Pinia · Chart.js |
+| **Deployment** | Docker · Portainer-ready · Health Check built-in |
+
+---
+
+## 🚀 Quick Start
+
+### Docker Compose (recommended)
+
 ```bash
 git clone https://github.com/TheDachlatte007/collectabase.git
 cd collectabase
 docker-compose up -d --build
 ```
 
-### 2. Available Volumes
-The app stores all persistent data so you won't lose it on restarts:
-- `./data:/app/data` — Contains the `games.db` SQLite database.
-- `./uploads:/app/uploads` — Contains locally cached high-res cover art.
+Open **http://localhost:8000** — done.
 
-### 3. Open the App
-Navigate to `http://localhost:8000` (or the port you mapped).
+### Portainer Stack
 
----
+Create a new Stack and paste the contents of `docker-compose.yml`, or point to this repository.
 
-## 🔑 Configuration & API Keys
+### Persistent Data
 
-Collectabase relies on external APIs to magically enrich your collection. You don't need environment variables anymore! Everything is configured via the **Settings (Web UI)**.
+| Volume | Purpose |
+|--------|---------|
+| `./data:/app/data` | SQLite database |
+| `./uploads:/app/uploads` | Locally cached cover images |
 
-1. Open the Collectabase app in your browser.
-2. Go to **Settings -> Credentials**.
-3. Add your keys:
-   - **IGDB**: Get it from the [Twitch Dev Console](https://dev.twitch.tv/console/apps). (Used for fast cover art and metadata)
-   - **RAWG**: Get it from [RAWG.io](https://rawg.io/apidocs). (Alternative metadata provider)
-   - **eBay**: Get it from the [eBay Developers Program](https://developer.ebay.com/). (Used for fallback market prices)
-   - **PriceCharting**: Token required for scraping/API use.
-4. Click **Save Credentials**.
+Your data survives container restarts and rebuilds.
 
 ---
 
-## 🛠️ Development
+## 🔑 Configuration
 
-If you want to contribute or run the app locally for development:
+All API keys are managed through the **Settings page** — no `.env` file editing required.
+
+| Provider | Purpose | Get Key |
+|----------|---------|---------|
+| **IGDB** | Game cover art & metadata | [Twitch Dev Console](https://dev.twitch.tv/console/apps) |
+| **RAWG** | Alternative metadata provider | [RAWG.io](https://rawg.io/apidocs) |
+| **eBay** | Fallback market prices + Funko/Figure images | [eBay Developers](https://developer.ebay.com/) |
+| **PriceCharting** | Primary market prices (optional token) | [PriceCharting](https://www.pricecharting.com/) |
+
+> **Note:** PriceCharting scraping works without an API token. The token is only needed for the official API fallback.
+
+### Optional: Admin API Key
+
+Set `ADMIN_API_KEY` as an environment variable or Docker secret to protect write operations when exposing your instance beyond your LAN. Without it, admin actions are allowed only from local/private IPs.
+
+---
+
+## 🛠️ Local Development
 
 ### Backend
+
 ```bash
 cd backend
 python -m venv .venv
-source .venv/bin/activate  # or .venv\Scripts\activate on Windows
+source .venv/bin/activate  # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 
-# Run migrations to create/update tables
+# Create/update database schema
 alembic upgrade head
 
-# Start API
-uvicorn api.main:app --reload
+# Start API server
+uvicorn backend.main:app --reload
 ```
 
 ### Frontend
+
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
 
+The Vite dev server proxies API requests to the backend on port 8000.
+
+---
+
+## 🐳 Docker Health Check
+
+Collectabase includes a built-in health endpoint at `/api/health`:
+
+```json
+{
+  "status": "healthy",
+  "version": "1.0.0",
+  "database": "ok",
+  "uptime_seconds": 3600
+}
+```
+
+The Docker image runs a health check every 30 seconds. Portainer and Docker Desktop will show the container health status automatically.
+
+---
+
+## 🗂️ Project Structure
+
+```
+collectabase/
+├── backend/
+│   ├── api/routes/       # FastAPI route modules
+│   ├── services/         # Lookup, pricing, scraping logic
+│   ├── db/               # SQLAlchemy models & session
+│   ├── alembic/          # Database migrations
+│   ├── main.py           # App entry point
+│   ├── scheduler.py      # Background job scheduler
+│   └── price_tracker.py  # Price fetching orchestration
+├── frontend/
+│   ├── src/views/        # Vue page components
+│   ├── src/api/          # API client layer
+│   └── public/           # PWA manifest, icons, service worker
+├── docker-compose.yml
+├── Dockerfile
+└── README.md
+```
+
+---
+
 ## 📝 License
 
-MIT License. Designed with ❤️ for game collectors.
+MIT License. Built with ❤️ for collectors.

@@ -1,10 +1,13 @@
 import os
+import time
 from pathlib import Path
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
+
+from .version import APP_VERSION
 
 # Load env before importing local modules that read os.getenv at import time.
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -22,7 +25,8 @@ from .price_tracker import router as price_router
 from .scheduler import init_scheduler, shutdown_scheduler
 
 
-app = FastAPI(title="Collectabase", version="1.0.0")
+app = FastAPI(title="Collectabase", version=APP_VERSION)
+_startup_time = time.time()
 app.include_router(games_router)
 app.include_router(lookup_router)
 app.include_router(import_export_router)
@@ -56,6 +60,25 @@ async def startup_event():
 async def shutdown_event():
     shutdown_scheduler()
 
+
+@app.get("/api/health")
+async def health_check():
+    """Health check for Docker / Portainer / monitoring."""
+    from .database import get_db
+    db_ok = False
+    try:
+        with get_db() as db:
+            db.execute("SELECT 1").fetchone()
+            db_ok = True
+    except Exception:
+        pass
+    uptime = int(time.time() - _startup_time)
+    return {
+        "status": "healthy" if db_ok else "degraded",
+        "version": APP_VERSION,
+        "database": "ok" if db_ok else "error",
+        "uptime_seconds": uptime,
+    }
 
 
 @app.get("/")

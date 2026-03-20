@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 
 from ...database import get_app_meta_many, get_db, set_app_meta
+from ...version import APP_VERSION
 from ..security import admin_protection_status, require_admin_access
 
 router = APIRouter()
@@ -205,7 +206,7 @@ async def settings_info():
     )
 
     return {
-        "version": "1.0.0",
+        "version": APP_VERSION,
         "igdb_configured": bool(client_id),
         "pricecharting_configured": bool(pricecharting_token),
         "ebay_configured": bool(ebay_client_id and ebay_client_secret),

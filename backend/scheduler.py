@@ -98,10 +98,24 @@ async def snapshot_collection_value():
         logger.error(f"Error in snapshot_collection_value: {e}", exc_info=True)
 
 
+def _add_snapshot_job():
+    """Register the daily value-history snapshot (runs once at 03:00)."""
+    scheduler.add_job(
+        snapshot_collection_value,
+        'cron',
+        id="daily_value_snapshot",
+        hour=3,
+        minute=0,
+        replace_existing=True,
+    )
+    logger.info("Daily value-history snapshot scheduled at 03:00")
+
+
 def init_scheduler():
     interval = int(get_app_meta_many(["apscheduler_interval"]).get("apscheduler_interval", 0))
     if interval > 0:
         scheduler.add_job(scheduled_price_update, 'interval', id="price_update", hours=interval, replace_existing=True)
+        _add_snapshot_job()
         scheduler.start()
         logger.info(f"Background scheduler started with {interval} hour interval")
     else:
@@ -113,10 +127,13 @@ def update_scheduler():
         if not scheduler.running:
             scheduler.start()
         scheduler.add_job(scheduled_price_update, 'interval', id="price_update", hours=interval, replace_existing=True)
+        _add_snapshot_job()
         logger.info(f"Background scheduler updated to {interval} hour interval")
     else:
         if scheduler.get_job("price_update"):
             scheduler.remove_job("price_update")
+        if scheduler.get_job("daily_value_snapshot"):
+            scheduler.remove_job("daily_value_snapshot")
         if scheduler.running:
             scheduler.shutdown(wait=False)
 
