@@ -151,6 +151,7 @@ class LotItem(Base):
     title_snapshot = Column(String, nullable=False)
     platform_snapshot = Column(String)
     item_type_snapshot = Column(String, server_default="game")
+    quantity = Column(Integer, server_default="1", nullable=False)
     estimated_value = Column(Float)
     cost_basis_override = Column(Float)
     allocated_cost_basis = Column(Float, server_default="0", nullable=False)

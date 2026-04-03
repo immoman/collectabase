@@ -22,7 +22,7 @@
         <div class="form-group"><label>Other Costs</label><input v-model="newLot.other_costs" type="number" min="0" step="0.01" /></div>
       </div>
       <div class="form-group mb-2"><label>Notes</label><textarea v-model="newLot.notes" rows="2" /></div>
-      <button class="btn btn-primary" :disabled="creatingLot" @click="createLot">{{ creatingLot ? 'Creating…' : 'Create Lot' }}</button>
+      <button class="btn btn-primary" :disabled="creatingLot" @click="createLot">{{ creatingLot ? 'Creating...' : 'Create Lot' }}</button>
     </div>
 
     <div v-if="loading" class="loading">Loading lots...</div>
@@ -37,8 +37,8 @@
           <div v-if="!lots.length" class="text-muted">No lots yet.</div>
           <button v-for="lot in lots" :key="lot.id" class="lot-btn" :class="{ active: selectedLotId === lot.id }" @click="selectLot(lot.id)">
             <strong>{{ lot.name }}</strong>
-            <span>{{ formatCurrency(lot.total_cost_basis) }} · {{ lot.summary.item_count }} items</span>
-            <small>{{ formatCurrency(lot.summary.net_sales) }} sales · {{ formatCurrency(lot.summary.remaining_cost_basis) }} open</small>
+            <span>{{ formatCurrency(lot.total_cost_basis) }} / {{ lot.summary.item_count }} units</span>
+            <small>{{ formatCurrency(lot.summary.estimated_total_value) }} est. / {{ formatCurrency(lot.summary.estimated_inventory_value) }} for sale</small>
           </button>
         </div>
       </aside>
@@ -50,7 +50,7 @@
               <h2 class="section-title">Lot Details</h2>
               <div class="actions">
                 <button class="btn btn-secondary btn-small" @click="reloadLot">Refresh</button>
-                <button class="btn btn-primary btn-small" :disabled="savingLot" @click="saveLot">{{ savingLot ? 'Saving…' : 'Save' }}</button>
+                <button class="btn btn-primary btn-small" :disabled="savingLot" @click="saveLot">{{ savingLot ? 'Saving...' : 'Save' }}</button>
                 <button class="btn btn-danger btn-small" :disabled="deletingLot" @click="deleteLot">Delete</button>
               </div>
             </div>
@@ -68,12 +68,29 @@
           </div>
 
           <div class="kpis">
-            <div class="card kpi"><label>Total Cost</label><strong>{{ formatCurrency(selectedLot.total_cost_basis) }}</strong></div>
+            <div class="card kpi"><label>Bought For</label><strong>{{ formatCurrency(selectedLot.total_cost_basis) }}</strong></div>
+            <div class="card kpi"><label>Estimated Lot Value</label><strong>{{ formatCurrency(selectedLot.summary.estimated_total_value) }}</strong></div>
+            <div class="card kpi"><label>Remaining For Sale</label><strong>{{ formatCurrency(selectedLot.summary.estimated_inventory_value) }}</strong></div>
             <div class="card kpi"><label>Net Sales</label><strong>{{ formatCurrency(selectedLot.summary.net_sales) }}</strong></div>
             <div class="card kpi"><label>Realized Profit</label><strong :class="valueClass(selectedLot.summary.realized_profit)">{{ formatCurrency(selectedLot.summary.realized_profit) }}</strong></div>
-            <div class="card kpi"><label>Remaining Cost</label><strong>{{ formatCurrency(selectedLot.summary.remaining_cost_basis) }}</strong></div>
-            <div class="card kpi"><label>Estimated Remaining</label><strong>{{ formatCurrency(selectedLot.summary.expected_remaining_value) }}</strong></div>
             <div class="card kpi"><label>Recovery</label><strong>{{ formatPercent(selectedLot.summary.recovery_rate_pct) }}</strong></div>
+          </div>
+
+          <div class="card compare-card">
+            <div class="compare-row">
+              <div>
+                <span class="compare-label">Bought for</span>
+                <strong>{{ formatCurrency(selectedLot.total_cost_basis) }}</strong>
+              </div>
+              <div>
+                <span class="compare-label">Estimated total</span>
+                <strong>{{ formatCurrency(selectedLot.summary.estimated_total_value) }}</strong>
+              </div>
+              <div>
+                <span class="compare-label">Still for sale</span>
+                <strong>{{ formatCurrency(selectedLot.summary.estimated_inventory_value) }}</strong>
+              </div>
+            </div>
           </div>
 
           <div class="card">
@@ -82,12 +99,16 @@
               <label>Link collection item (optional)</label>
               <input v-model.trim="librarySearch" placeholder="Search collection..." @input="searchLibrary" />
             </div>
-            <div v-if="libraryResults.length" class="search-results mb-2">
-              <button v-for="game in libraryResults" :key="game.id" class="search-result" @click="pickGame(game)">
-                {{ game.title }} · {{ game.platform_name || 'No platform' }}
-              </button>
+            <div v-if="showLibraryDropdown" class="search-results mb-2">
+              <div v-if="searchingLibrary" class="search-hint">Searching inventory...</div>
+              <template v-else-if="libraryResults.length">
+                <button v-for="game in libraryResults" :key="game.id" type="button" class="search-result" @click="pickGame(game)">
+                  {{ game.title }} / {{ game.platform_name || 'No platform' }} / {{ game.item_type || 'game' }}
+                </button>
+              </template>
+              <div v-else class="search-hint">No inventory matches yet.</div>
             </div>
-            <div v-if="itemForm.game_id" class="linked mb-2">Linked: {{ itemForm.title_snapshot }} <button class="link-btn" @click="clearLinkedGame">Clear</button></div>
+            <div v-if="itemForm.game_id" class="linked mb-2">Linked: {{ itemForm.title_snapshot }} <button type="button" class="link-btn" @click="clearLinkedGame">Clear</button></div>
             <div class="form-grid">
               <div class="form-group"><label>Title</label><input v-model.trim="itemForm.title_snapshot" :disabled="Boolean(itemForm.game_id)" /></div>
               <div class="form-group"><label>Platform</label><input v-model.trim="itemForm.platform_snapshot" :disabled="Boolean(itemForm.game_id)" /></div>
@@ -101,8 +122,9 @@
                   <option value="misc">Misc</option>
                 </select>
               </div>
-              <div class="form-group"><label>Estimated Value</label><input v-model="itemForm.estimated_value" type="number" min="0" step="0.01" /></div>
-              <div class="form-group"><label>Cost Override</label><input v-model="itemForm.cost_basis_override" type="number" min="0" step="0.01" placeholder="Optional" /></div>
+              <div class="form-group"><label>Amount</label><input v-model="itemForm.quantity" type="number" min="1" step="1" /></div>
+              <div class="form-group"><label>Unit Estimate</label><input v-model="itemForm.estimated_value" type="number" min="0" step="0.01" /></div>
+              <div class="form-group"><label>Cost Override</label><input v-model="itemForm.cost_basis_override" type="number" min="0" step="0.01" placeholder="Optional total" /></div>
               <div class="form-group"><label>Status</label>
                 <select v-model="itemForm.status">
                   <option value="inventory">Inventory</option>
@@ -112,30 +134,35 @@
               </div>
             </div>
             <div class="form-group mb-2"><label>Notes</label><textarea v-model="itemForm.notes" rows="2" /></div>
-            <button class="btn btn-primary" :disabled="creatingItem" @click="addItem">{{ creatingItem ? 'Adding…' : 'Add Item' }}</button>
+            <button class="btn btn-primary" :disabled="creatingItem" @click="addItem">{{ creatingItem ? 'Adding...' : 'Add Item' }}</button>
           </div>
 
           <div class="card">
             <div class="section-head">
               <h2 class="section-title">Items</h2>
-              <span class="pill">{{ selectedLot.items.length }}</span>
+              <span class="pill">{{ selectedLot.summary.item_count }}</span>
             </div>
             <div v-if="!selectedLot.items.length" class="text-muted">No items yet.</div>
             <div v-else class="table-wrap">
               <table class="lot-table">
                 <thead>
-                  <tr><th>Item</th><th>Estimated</th><th>Override</th><th>Allocated</th><th>Status</th><th>Sale</th><th></th></tr>
+                  <tr><th>Item</th><th>Amount</th><th>Unit Est.</th><th>Override</th><th>Allocated</th><th>Status</th><th>Sale</th><th></th></tr>
                 </thead>
                 <tbody>
                   <tr v-for="item in selectedLot.items" :key="item.id">
                     <td>
                       <strong>{{ item.title_snapshot }}</strong>
-                      <small class="text-muted block">{{ item.platform_snapshot || 'No platform' }} · {{ item.item_type_snapshot || 'game' }}</small>
+                      <small class="text-muted block">{{ item.platform_snapshot || 'No platform' }} / {{ item.item_type_snapshot || 'game' }}</small>
+                      <small class="text-muted block">Line est.: {{ formatCurrency(item.estimated_total_value) }}</small>
                       <router-link v-if="item.game_id" :to="`/game/${item.game_id}`" class="mini-link">Open linked item</router-link>
                     </td>
+                    <td><input v-model="itemDrafts[item.id].quantity" type="number" min="1" step="1" /></td>
                     <td><input v-model="itemDrafts[item.id].estimated_value" type="number" min="0" step="0.01" /></td>
                     <td><input v-model="itemDrafts[item.id].cost_basis_override" type="number" min="0" step="0.01" placeholder="Auto" /></td>
-                    <td><strong>{{ formatCurrency(item.allocated_cost_basis) }}</strong><small class="text-muted block">{{ item.allocation_method }}</small></td>
+                    <td>
+                      <strong>{{ formatCurrency(item.allocated_cost_basis) }}</strong>
+                      <small class="text-muted block">{{ item.allocation_method }} / {{ formatCurrency(item.allocated_unit_cost_basis) }} each</small>
+                    </td>
                     <td>
                       <select v-model="itemDrafts[item.id].status">
                         <option value="inventory">Inventory</option>
@@ -144,7 +171,7 @@
                         <option value="discarded">Discarded</option>
                       </select>
                     </td>
-                    <td>{{ item.sale ? formatCurrency(item.sale.net_proceeds) : '—' }}</td>
+                    <td>{{ item.sale ? formatCurrency(item.sale.net_proceeds) : '-' }}</td>
                     <td class="actions">
                       <button class="btn btn-secondary btn-small" :disabled="savingItemId === item.id" @click="saveItem(item)">Save</button>
                       <button class="btn btn-secondary btn-small" @click="editSale(item)">{{ item.sale ? 'Edit Sale' : 'Add Sale' }}</button>
@@ -175,7 +202,7 @@
             <div class="form-group mb-2"><label>Notes</label><textarea v-model="saleForm.notes" rows="2" /></div>
             <div class="actions mb-2">
               <button class="btn btn-secondary" @click="resetSale">Reset</button>
-              <button class="btn btn-primary" :disabled="savingSale" @click="saveSale">{{ savingSale ? 'Saving…' : 'Save Sale' }}</button>
+              <button class="btn btn-primary" :disabled="savingSale" @click="saveSale">{{ savingSale ? 'Saving...' : 'Save Sale' }}</button>
             </div>
             <div v-if="selectedLot.sales.length" class="table-wrap">
               <table class="lot-table">
@@ -184,7 +211,7 @@
                   <tr v-for="sale in selectedLot.sales" :key="sale.id">
                     <td>{{ sale.item_title }}</td>
                     <td>{{ formatDate(sale.sold_at) }}</td>
-                    <td>{{ sale.channel || '—' }}</td>
+                    <td>{{ sale.channel || '-' }}</td>
                     <td>{{ formatCurrency(sale.net_proceeds) }}</td>
                     <td :class="valueClass(sale.realized_profit)">{{ formatCurrency(sale.realized_profit) }}</td>
                     <td class="actions">
@@ -224,6 +251,8 @@ const savingSale = ref(false)
 const editingSaleItemId = ref(null)
 const librarySearch = ref('')
 const libraryResults = ref([])
+const searchingLibrary = ref(false)
+const libraryHasSearched = ref(false)
 const searchToken = ref(0)
 
 const newLot = reactive(makeLot())
@@ -233,13 +262,17 @@ const saleForm = reactive(makeSale())
 const itemDrafts = reactive({})
 
 const saleItems = computed(() => (selectedLot.value?.items || []).filter((item) => !item.sale || Number(saleForm.item_id) === item.id))
+const showLibraryDropdown = computed(() => {
+  const term = librarySearch.value.trim()
+  return term.length >= 2 && (searchingLibrary.value || libraryHasSearched.value)
+})
 
 function makeLot() {
   return { name: '', purchase_date: '', seller: '', purchase_price_gross: '0', shipping_in: '0', fees_in: '0', other_costs: '0', notes: '' }
 }
 
 function makeItem() {
-  return { game_id: null, title_snapshot: '', platform_snapshot: '', item_type_snapshot: 'game', estimated_value: '', cost_basis_override: '', status: 'inventory', notes: '' }
+  return { game_id: null, title_snapshot: '', platform_snapshot: '', item_type_snapshot: 'game', quantity: '1', estimated_value: '', cost_basis_override: '', status: 'inventory', notes: '' }
 }
 
 function makeSale() {
@@ -256,6 +289,11 @@ function num(value, fallback = null) {
   return Number.isFinite(parsed) ? parsed : fallback
 }
 
+function intNum(value, fallback = 1) {
+  const parsed = Number.parseInt(value, 10)
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback
+}
+
 function formatCurrency(value) {
   return new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(Number(value || 0))
 }
@@ -265,7 +303,7 @@ function formatPercent(value) {
 }
 
 function formatDate(value) {
-  return value || '—'
+  return value || '-'
 }
 
 function valueClass(value) {
@@ -278,6 +316,7 @@ function buildItemDrafts() {
   Object.keys(itemDrafts).forEach((key) => delete itemDrafts[key])
   for (const item of selectedLot.value?.items || []) {
     itemDrafts[item.id] = {
+      quantity: String(item.quantity ?? 1),
       estimated_value: item.estimated_value ?? '',
       cost_basis_override: item.cost_basis_override ?? '',
       status: item.status || 'inventory',
@@ -410,11 +449,24 @@ async function refreshLotList() {
 
 async function searchLibrary() {
   const term = librarySearch.value.trim()
-  if (term.length < 2) { libraryResults.value = []; return }
+  if (term.length < 2) {
+    libraryResults.value = []
+    libraryHasSearched.value = false
+    searchingLibrary.value = false
+    return
+  }
+
   const token = ++searchToken.value
-  const res = await gamesApi.list(`?search=${encodeURIComponent(term)}`)
-  if (token !== searchToken.value || !res.ok) return
-  libraryResults.value = (Array.isArray(res.data) ? res.data : []).filter((game) => !game.is_wishlist).slice(0, 8)
+  searchingLibrary.value = true
+  libraryHasSearched.value = false
+  try {
+    const res = await gamesApi.list(`?search=${encodeURIComponent(term)}&wishlist=false`)
+    if (token !== searchToken.value || !res.ok) return
+    libraryResults.value = Array.isArray(res.data) ? res.data.slice(0, 8) : []
+    libraryHasSearched.value = true
+  } finally {
+    if (token === searchToken.value) searchingLibrary.value = false
+  }
 }
 
 function pickGame(game) {
@@ -424,10 +476,13 @@ function pickGame(game) {
   itemForm.item_type_snapshot = game.item_type || 'game'
   librarySearch.value = ''
   libraryResults.value = []
+  libraryHasSearched.value = false
 }
 
 function clearLinkedGame() {
+  const nextQuantity = itemForm.quantity
   assign(itemForm, makeItem())
+  itemForm.quantity = nextQuantity
 }
 
 async function addItem() {
@@ -440,6 +495,7 @@ async function addItem() {
       title_snapshot: itemForm.game_id ? null : itemForm.title_snapshot.trim(),
       platform_snapshot: itemForm.game_id ? null : itemForm.platform_snapshot.trim(),
       item_type_snapshot: itemForm.game_id ? null : itemForm.item_type_snapshot,
+      quantity: intNum(itemForm.quantity, 1),
       estimated_value: num(itemForm.estimated_value, null),
       cost_basis_override: num(itemForm.cost_basis_override, null),
       status: itemForm.status,
@@ -464,6 +520,7 @@ async function saveItem(item) {
   try {
     const draft = itemDrafts[item.id]
     const res = await lotsApi.updateItem(selectedLot.value.id, item.id, {
+      quantity: intNum(draft.quantity, 1),
       estimated_value: num(draft.estimated_value, null),
       cost_basis_override: num(draft.cost_basis_override, null),
       clear_cost_basis_override: draft.cost_basis_override === '' || draft.cost_basis_override === null,
@@ -581,8 +638,9 @@ onMounted(() => loadLots())
 .lot-btn { width:100%; margin-top:.6rem; border:1px solid var(--glass-border); background:rgba(255,255,255,.03); color:var(--text); text-align:left; border-radius:.85rem; padding:.85rem; cursor:pointer; }
 .lot-btn.active { border-color:rgba(139,92,246,.45); background:rgba(139,92,246,.12); }
 .lot-btn span, .lot-btn small, .block { display:block; }
-.search-results { display:grid; gap:.45rem; }
+.search-results { display:grid; gap:.45rem; padding:.55rem; border:1px solid var(--glass-border); border-radius:.8rem; background:rgba(255,255,255,.02); }
 .search-result { padding:.65rem .75rem; border-radius:.7rem; border:1px solid var(--glass-border); background:rgba(255,255,255,.03); color:var(--text); text-align:left; cursor:pointer; }
+.search-hint { padding:.45rem .2rem; color:var(--text-muted); font-size:.9rem; }
 .linked { display:inline-flex; gap:.45rem; align-items:center; padding:.4rem .7rem; border-radius:999px; background:rgba(16,185,129,.15); color:#c7f9dd; }
 .link-btn { background:none; border:0; color:inherit; text-decoration:underline; cursor:pointer; }
 .table-wrap { overflow-x:auto; }
@@ -591,11 +649,14 @@ onMounted(() => loadLots())
 .lot-table th { color:var(--text-muted); font-size:.8rem; }
 .btn-small { min-height:34px; padding:.4rem .75rem; font-size:.82rem; }
 .mini-link { display:block; margin-top:.2rem; color:var(--text-muted); }
-.kpi label { display:block; margin-bottom:.2rem; color:var(--text-muted); font-size:.78rem; }
+.kpi label, .compare-label { display:block; margin-bottom:.2rem; color:var(--text-muted); font-size:.78rem; }
 .kpi strong { font-size:1.15rem; }
+.compare-card { padding:1rem 1.1rem; }
+.compare-row { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:1rem; }
+.compare-row strong { font-size:1.1rem; }
 .empty-state { min-height:220px; display:grid; place-items:center; color:var(--text-muted); }
 .value-positive { color:var(--success); }
 .value-negative { color:var(--error); }
 @media (max-width: 1100px) { .layout { grid-template-columns: 1fr; } .sidebar { position:static; } }
-@media (max-width: 768px) { .form-grid, .kpis { grid-template-columns: 1fr; } .page-head, .section-head { flex-direction:column; } .actions { width:100%; } }
+@media (max-width: 768px) { .form-grid, .kpis, .compare-row { grid-template-columns: 1fr; } .page-head, .section-head { flex-direction:column; } .actions { width:100%; } }
 </style>

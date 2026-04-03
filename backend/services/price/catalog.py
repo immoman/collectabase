@@ -40,7 +40,7 @@ def _lookup_local_catalog_price(title: str, platform_name: str):
                         sql += " AND LOWER(title) LIKE ?"
                         params.append(f"%{token}%")
                     sql += " ORDER BY scraped_at DESC LIMIT 2000"
-                    rows = db.execute(sql, params).fetchall()
+                    rows = db.execute(sql, tuple(params)).fetchall()
                 if not rows:
                     rows = db.execute("SELECT * FROM price_catalog WHERE LOWER(platform) = LOWER(?) ORDER BY scraped_at DESC LIMIT 3000", (norm_platform,)).fetchall()
             if not rows:
@@ -51,7 +51,7 @@ def _lookup_local_catalog_price(title: str, platform_name: str):
                         sql += " AND LOWER(title) LIKE ?"
                         params.append(f"%{token}%")
                     sql += " ORDER BY scraped_at DESC LIMIT 4000"
-                    rows = db.execute(sql, params).fetchall()
+                    rows = db.execute(sql, tuple(params)).fetchall()
                 if not rows:
                     rows = db.execute("SELECT * FROM price_catalog ORDER BY scraped_at DESC LIMIT 5000").fetchall()
     except Exception as e:

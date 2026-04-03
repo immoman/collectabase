@@ -55,6 +55,7 @@ def upgrade() -> None:
             sa.Column("title_snapshot", sa.String(), nullable=False),
             sa.Column("platform_snapshot", sa.String(), nullable=True),
             sa.Column("item_type_snapshot", sa.String(), nullable=True, server_default="game"),
+            sa.Column("quantity", sa.Integer(), nullable=False, server_default="1"),
             sa.Column("estimated_value", sa.Float(), nullable=True),
             sa.Column("cost_basis_override", sa.Float(), nullable=True),
             sa.Column("allocated_cost_basis", sa.Float(), nullable=False, server_default="0"),

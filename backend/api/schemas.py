@@ -113,6 +113,7 @@ class LotItemCreate(BaseModel):
     title_snapshot: Optional[str] = None
     platform_snapshot: Optional[str] = None
     item_type_snapshot: Optional[str] = None
+    quantity: Optional[int] = 1
     estimated_value: Optional[float] = None
     cost_basis_override: Optional[float] = None
     status: Optional[str] = "inventory"
@@ -125,6 +126,7 @@ class LotItemUpdate(BaseModel):
     title_snapshot: Optional[str] = None
     platform_snapshot: Optional[str] = None
     item_type_snapshot: Optional[str] = None
+    quantity: Optional[int] = None
     estimated_value: Optional[float] = None
     cost_basis_override: Optional[float] = None
     clear_cost_basis_override: bool = False

@@ -1,6 +1,6 @@
 const STORAGE_KEY = 'collectabase_ui_prefs'
 
-const THEME_OPTIONS = ['indigo', 'emerald', 'sunset']
+const THEME_OPTIONS = ['indigo', 'emerald', 'sunset', 'ocean', 'rose', 'slate']
 const DENSITY_OPTIONS = ['comfortable', 'compact']
 
 export function defaultUiPrefs() {

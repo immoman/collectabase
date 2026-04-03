@@ -1,350 +1,353 @@
 <template>
-  <div class="container">
-    <h1 class="mb-3">⚙️ Settings</h1>
-
-    <p class="section-label">System</p>
-    <div class="card mb-3">
-      <div class="card-head mb-2">
-        <h3 class="mb-0">System Overview</h3>
-        <button @click="loadInfo" class="btn btn-secondary btn-small" :disabled="infoLoading">
-          {{ infoLoading ? 'Refreshing…' : '↻ Refresh' }}
-        </button>
+  <div class="container settings-page">
+    <div class="settings-header mb-3">
+      <div>
+        <h1>Settings</h1>
+        <p class="text-muted">System status, integrations, automation and backup guidance in one place.</p>
       </div>
-
-      <div class="kpi-grid">
-        <div class="kpi-card">
-          <label>Providers</label>
-          <div class="kpi-value">{{ providersConfigured }}/{{ providersTotal }}</div>
-        </div>
-        <div class="kpi-card">
-          <label>Cover Coverage</label>
-          <div class="kpi-value">{{ coverCoverage.toFixed(1) }}%</div>
-          <div class="coverage-track"><div class="coverage-fill" :style="{ width: `${coverCoverage}%` }" /></div>
-        </div>
-        <div class="kpi-card">
-          <label>Items</label>
-          <div class="kpi-value">{{ info.total_items ?? 0 }}</div>
-          <div class="kpi-sub">{{ info.game_items ?? 0 }} games · {{ info.non_game_items ?? 0 }} others</div>
-        </div>
-        <div class="kpi-card">
-          <label>Storage</label>
-          <div class="kpi-value">{{ info.db_size || '—' }}</div>
-          <div class="kpi-sub">Uploads: {{ info.uploads_size || '—' }}</div>
-        </div>
-      </div>
-
-      <div v-if="setupHints.length" class="setup-hints mt-2">
-        <div class="hint-title">Recommended next steps</div>
-        <ul class="hint-list">
-          <li v-for="hint in setupHints" :key="hint">{{ hint }}</li>
-        </ul>
-      </div>
+      <button @click="loadInfo" class="btn btn-secondary btn-small" :disabled="infoLoading">
+        {{ infoLoading ? 'Refreshing…' : 'Refresh Overview' }}
+      </button>
     </div>
 
-    <div class="card mb-3">
-      <h3 class="mb-2">Appearance</h3>
-      <div class="appearance-grid">
-        <div class="form-group mb-0">
-          <label for="theme-select">Theme Variant</label>
-          <select id="theme-select" :value="uiPrefs.theme" @change="onThemeChange">
-            <option value="indigo">Indigo</option>
-            <option value="emerald">Emerald</option>
-            <option value="sunset">Sunset</option>
-          </select>
-        </div>
-        <div class="form-group mb-0">
-          <label for="density-select">Density</label>
-          <select id="density-select" :value="uiPrefs.density" @change="onDensityChange">
-            <option value="comfortable">Comfortable</option>
-            <option value="compact">Compact</option>
-          </select>
-        </div>
-      </div>
-      <p class="text-muted mt-2">Saved in your browser and applied instantly.</p>
-    </div>
-
-    <!-- Integrations & Storage -->
-    <div class="card mb-3">
-      <h3 class="mb-2">Integrations & Storage</h3>
-      <div class="info-grid">
-        <div class="info-item">
-          <label>Version</label>
-          <span>{{ info.version || '—' }}</span>
-        </div>
-        <div class="info-item">
-          <label>IGDB</label>
-          <span :class="info.igdb_configured ? 'status-ok' : 'status-error'">
-            {{ info.igdb_configured ? '✅ Configured' : '❌ Not configured' }}
-          </span>
-        </div>
-        <div v-if="info.pricecharting_configured" class="info-item">
-          <label>PriceCharting</label>
-          <span class="status-ok">✅ configured</span>
-        </div>
-        <div class="info-item">
-          <label>eBay Market Prices</label>
-          <span :class="info.ebay_configured ? 'status-ok' : 'status-warn'">
-            {{ info.ebay_configured
-              ? '✅ configured'
-              : (info.ebay_client_id_set ? '⚠️ EBAY_CLIENT_SECRET not set' : '⚠️ EBAY_CLIENT_ID not set') }}
-          </span>
-        </div>
-        <div class="info-item">
-          <label>RAWG</label>
-          <span :class="info.rawg_configured ? 'status-ok' : 'status-warn'">
-            {{ info.rawg_configured ? '✅ configured' : '⚠️ RAWG_API_KEY not set' }}
-          </span>
-        </div>
-        <div class="info-item">
-          <label>Admin Guard</label>
-          <span :class="info.admin_key_configured ? 'status-ok' : 'status-warn'">
-            {{ info.admin_key_configured ? '✅ API key protection enabled' : '⚠️ Local-only protection (set ADMIN_API_KEY for remote)' }}
-          </span>
-        </div>
-        <div class="info-item">
-          <label>Total Items</label>
-          <span>{{ info.total_items ?? '—' }}</span>
-        </div>
-        <div class="info-item">
-          <label>Without Cover</label>
-          <span>{{ info.missing_covers ?? '—' }}</span>
-        </div>
-        <div class="info-item">
-          <label>Covered Items</label>
-          <span>{{ info.covered_items ?? '—' }}</span>
-        </div>
-        <div class="info-item">
-          <label>Local Covers</label>
-          <span>{{ info.local_covers ?? '—' }}</span>
-        </div>
-        <div class="info-item">
-          <label>Remote Covers</label>
-          <span>{{ info.remote_covers ?? '—' }}</span>
-        </div>
-        <div class="info-item">
-          <label>DB Size</label>
-          <span>{{ info.db_size || '—' }}</span>
-        </div>
-        <div class="info-item">
-          <label>Upload Files</label>
-          <span>{{ info.uploads_files ?? '—' }}</span>
-        </div>
-        <div class="info-item">
-          <label>Uploads Size</label>
-          <span>{{ info.uploads_size || '—' }}</span>
-        </div>
-        <div class="info-item">
-          <label>Platforms</label>
-          <span>{{ info.platforms_count ?? '—' }}</span>
-        </div>
-        <div class="info-item">
-          <label>Wishlist Items</label>
-          <span>{{ info.wishlist_count ?? '—' }}</span>
-        </div>
-      </div>
-    </div>
-
-    <div class="card mb-3">
-      <h3 class="mb-2">🔐 Admin Credentials</h3>
-      <p class="text-muted mb-2">
-        Save provider credentials server-side. Values are write-only in UI and are not returned by API.
-      </p>
-      <div class="secrets-grid">
-        <div class="form-group mb-0">
-          <label>Admin API Key (local browser)</label>
-          <input
-            v-model.trim="localAdminKey"
-            type="password"
-            autocomplete="off"
-            placeholder="Used for protected admin actions"
-          />
-          <div class="secret-actions mt-2">
-            <button @click="saveLocalAdminKey" class="btn btn-secondary btn-small">Save Local Key</button>
-            <button @click="clearLocalAdminKey" class="btn btn-secondary btn-small">Clear</button>
+    <div class="settings-stack">
+      <section class="card settings-section">
+        <div class="section-header mb-2">
+          <div>
+            <p class="section-kicker">System</p>
+            <h2>Overview</h2>
           </div>
         </div>
-        <div class="form-group mb-0">
-          <label>IGDB Client ID</label>
-          <input v-model.trim="secretsForm.igdb_client_id" type="text" autocomplete="off" placeholder="Leave empty to keep current value" />
-          <label class="clear-check"><input v-model="secretsForm.clear_igdb_client_id" type="checkbox" /> Clear stored value</label>
-        </div>
-        <div class="form-group mb-0">
-          <label>IGDB Client Secret</label>
-          <input v-model.trim="secretsForm.igdb_client_secret" type="password" autocomplete="new-password" placeholder="Leave empty to keep current value" />
-          <label class="clear-check"><input v-model="secretsForm.clear_igdb_client_secret" type="checkbox" /> Clear stored value</label>
-        </div>
-        <div class="form-group mb-0">
-          <label>eBay Client ID</label>
-          <input v-model.trim="secretsForm.ebay_client_id" type="text" autocomplete="off" placeholder="Leave empty to keep current value" />
-          <label class="clear-check"><input v-model="secretsForm.clear_ebay_client_id" type="checkbox" /> Clear stored value</label>
-        </div>
-        <div class="form-group mb-0">
-          <label>eBay Client Secret</label>
-          <input v-model.trim="secretsForm.ebay_client_secret" type="password" autocomplete="new-password" placeholder="Leave empty to keep current value" />
-          <label class="clear-check"><input v-model="secretsForm.clear_ebay_client_secret" type="checkbox" /> Clear stored value</label>
-        </div>
-        <div class="form-group mb-0">
-          <label>RAWG API Key</label>
-          <input v-model.trim="secretsForm.rawg_api_key" type="password" autocomplete="new-password" placeholder="Leave empty to keep current value" />
-          <label class="clear-check"><input v-model="secretsForm.clear_rawg_api_key" type="checkbox" /> Clear stored value</label>
-        </div>
-        <div class="form-group mb-0">
-          <label>PriceCharting Token</label>
-          <input v-model.trim="secretsForm.pricecharting_token" type="password" autocomplete="new-password" placeholder="Leave empty to keep current value" />
-          <label class="clear-check"><input v-model="secretsForm.clear_pricecharting_token" type="checkbox" /> Clear stored value</label>
-        </div>
-      </div>
-      <div class="secret-actions mt-2">
-        <button @click="saveSecrets" class="btn btn-primary" :disabled="secretsSaving">
-          {{ secretsSaving ? 'Saving…' : 'Save Credentials' }}
-        </button>
-      </div>
-    </div>
 
-    <p class="section-label">Automation</p>
-    <div class="card mb-3">
-      <h3 class="mb-2">Automated Price Updates</h3>
-      <p class="text-muted mb-2">Automatically fetch new PriceCharting catalog prices and update the values of your collection.</p>
-      
-      <div class="form-group mb-0 mt-3">
-        <label>Update Interval</label>
-        <div class="flex gap-2 items-center">
-          <select class="limit-input" v-model="schedulerInterval" style="width: auto;">
-            <option :value="0">Off (Manual only)</option>
-            <option :value="2">Every 2 Hours</option>
-            <option :value="6">Every 6 Hours</option>
-            <option :value="12">Every 12 Hours</option>
-            <option :value="24">Every 24 Hours</option>
-            <option :value="168">Weekly</option>
-          </select>
-          <button @click="saveScheduler" class="btn btn-secondary" :disabled="schedulerSaving">
-            {{ schedulerSaving ? 'Saving...' : 'Save' }}
+        <div class="kpi-grid">
+          <div class="kpi-card">
+            <label>Providers</label>
+            <div class="kpi-value">{{ providersConfigured }}/{{ providersTotal }}</div>
+          </div>
+          <div class="kpi-card">
+            <label>Cover Coverage</label>
+            <div class="kpi-value">{{ coverCoverage.toFixed(1) }}%</div>
+            <div class="coverage-track"><div class="coverage-fill" :style="{ width: `${coverCoverage}%` }" /></div>
+          </div>
+          <div class="kpi-card">
+            <label>Items</label>
+            <div class="kpi-value">{{ info.total_items ?? 0 }}</div>
+            <div class="kpi-sub">{{ info.game_items ?? 0 }} games · {{ info.non_game_items ?? 0 }} other items</div>
+          </div>
+          <div class="kpi-card">
+            <label>Storage</label>
+            <div class="kpi-value">{{ info.db_size || '—' }}</div>
+            <div class="kpi-sub">Uploads: {{ info.uploads_size || '—' }}</div>
+          </div>
+        </div>
+
+        <div v-if="setupHints.length" class="setup-hints mt-2">
+          <div class="hint-title">Recommended next steps</div>
+          <ul class="hint-list">
+            <li v-for="hint in setupHints" :key="hint">{{ hint }}</li>
+          </ul>
+        </div>
+
+        <div class="info-grid mt-2">
+          <div class="info-item">
+            <label>Version</label>
+            <span>{{ info.version || '—' }}</span>
+          </div>
+          <div class="info-item">
+            <label>Total Items</label>
+            <span>{{ info.total_items ?? '—' }}</span>
+          </div>
+          <div class="info-item">
+            <label>Covered Items</label>
+            <span>{{ info.covered_items ?? '—' }}</span>
+          </div>
+          <div class="info-item">
+            <label>Missing Covers</label>
+            <span>{{ info.missing_covers ?? '—' }}</span>
+          </div>
+          <div class="info-item">
+            <label>Platforms</label>
+            <span>{{ info.platforms_count ?? '—' }}</span>
+          </div>
+          <div class="info-item">
+            <label>Wishlist Items</label>
+            <span>{{ info.wishlist_count ?? '—' }}</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="card settings-section">
+        <div class="section-header mb-2">
+          <div>
+            <p class="section-kicker">Appearance</p>
+            <h2>Theme & Density</h2>
+          </div>
+        </div>
+        <div class="appearance-grid">
+          <div class="form-group mb-0">
+            <label for="theme-select">Theme Variant</label>
+            <select id="theme-select" :value="uiPrefs.theme" @change="onThemeChange">
+              <option value="indigo">Indigo</option>
+              <option value="emerald">Emerald</option>
+              <option value="sunset">Sunset</option>
+              <option value="ocean">Ocean</option>
+              <option value="rose">Rose</option>
+              <option value="slate">Slate</option>
+            </select>
+          </div>
+          <div class="form-group mb-0">
+            <label for="density-select">Density</label>
+            <select id="density-select" :value="uiPrefs.density" @change="onDensityChange">
+              <option value="comfortable">Comfortable</option>
+              <option value="compact">Compact</option>
+            </select>
+          </div>
+        </div>
+        <div class="theme-preview-grid mt-2">
+          <div v-for="theme in themeSwatches" :key="theme.value" class="theme-chip" :class="{ active: uiPrefs.theme === theme.value }">
+            <span class="theme-dot" :style="{ background: theme.color }"></span>
+            <span>{{ theme.label }}</span>
+          </div>
+        </div>
+        <p class="text-muted mt-2">Preferences are saved in your browser and applied instantly.</p>
+      </section>
+
+      <section class="card settings-section">
+        <div class="section-header mb-2">
+          <div>
+            <p class="section-kicker">Integrations</p>
+            <h2>Providers & Credentials</h2>
+          </div>
+        </div>
+        <div class="info-grid mb-2">
+          <div class="info-item">
+            <label>IGDB</label>
+            <span :class="info.igdb_configured ? 'status-ok' : 'status-error'">
+              {{ info.igdb_configured ? 'Configured' : 'Not configured' }}
+            </span>
+          </div>
+          <div v-if="info.pricecharting_configured" class="info-item">
+            <label>PriceCharting</label>
+            <span class="status-ok">Configured</span>
+          </div>
+          <div class="info-item">
+            <label>eBay</label>
+            <span :class="info.ebay_configured ? 'status-ok' : 'status-warn'">
+              {{ info.ebay_configured ? 'Configured' : (info.ebay_client_id_set ? 'Client secret missing' : 'Client ID missing') }}
+            </span>
+          </div>
+          <div class="info-item">
+            <label>RAWG</label>
+            <span :class="info.rawg_configured ? 'status-ok' : 'status-warn'">
+              {{ info.rawg_configured ? 'Configured' : 'API key missing' }}
+            </span>
+          </div>
+          <div class="info-item">
+            <label>Admin Guard</label>
+            <span :class="info.admin_key_configured ? 'status-ok' : 'status-warn'">
+              {{ info.admin_key_configured ? 'API key protection enabled' : 'Local-only protection active' }}
+            </span>
+          </div>
+        </div>
+
+        <p class="text-muted mb-2">Provider credentials are stored server-side. Values are write-only in the UI.</p>
+        <div class="secrets-grid">
+          <div class="form-group mb-0">
+            <label>Admin API Key (local browser)</label>
+            <input
+              v-model.trim="localAdminKey"
+              type="password"
+              autocomplete="off"
+              placeholder="Used for protected admin actions"
+            />
+            <div class="secret-actions mt-2">
+              <button @click="saveLocalAdminKey" class="btn btn-secondary btn-small">Save Local Key</button>
+              <button @click="clearLocalAdminKey" class="btn btn-secondary btn-small">Clear</button>
+            </div>
+          </div>
+          <div class="form-group mb-0">
+            <label>IGDB Client ID</label>
+            <input v-model.trim="secretsForm.igdb_client_id" type="text" autocomplete="off" placeholder="Leave empty to keep current value" />
+            <label class="clear-check"><input v-model="secretsForm.clear_igdb_client_id" type="checkbox" /> Clear stored value</label>
+          </div>
+          <div class="form-group mb-0">
+            <label>IGDB Client Secret</label>
+            <input v-model.trim="secretsForm.igdb_client_secret" type="password" autocomplete="new-password" placeholder="Leave empty to keep current value" />
+            <label class="clear-check"><input v-model="secretsForm.clear_igdb_client_secret" type="checkbox" /> Clear stored value</label>
+          </div>
+          <div class="form-group mb-0">
+            <label>eBay Client ID</label>
+            <input v-model.trim="secretsForm.ebay_client_id" type="text" autocomplete="off" placeholder="Leave empty to keep current value" />
+            <label class="clear-check"><input v-model="secretsForm.clear_ebay_client_id" type="checkbox" /> Clear stored value</label>
+          </div>
+          <div class="form-group mb-0">
+            <label>eBay Client Secret</label>
+            <input v-model.trim="secretsForm.ebay_client_secret" type="password" autocomplete="new-password" placeholder="Leave empty to keep current value" />
+            <label class="clear-check"><input v-model="secretsForm.clear_ebay_client_secret" type="checkbox" /> Clear stored value</label>
+          </div>
+          <div class="form-group mb-0">
+            <label>RAWG API Key</label>
+            <input v-model.trim="secretsForm.rawg_api_key" type="password" autocomplete="new-password" placeholder="Leave empty to keep current value" />
+            <label class="clear-check"><input v-model="secretsForm.clear_rawg_api_key" type="checkbox" /> Clear stored value</label>
+          </div>
+          <div class="form-group mb-0">
+            <label>PriceCharting Token</label>
+            <input v-model.trim="secretsForm.pricecharting_token" type="password" autocomplete="new-password" placeholder="Leave empty to keep current value" />
+            <label class="clear-check"><input v-model="secretsForm.clear_pricecharting_token" type="checkbox" /> Clear stored value</label>
+          </div>
+        </div>
+        <div class="secret-actions mt-2">
+          <button @click="saveSecrets" class="btn btn-primary" :disabled="secretsSaving">
+            {{ secretsSaving ? 'Saving…' : 'Save Credentials' }}
           </button>
         </div>
-      </div>
+      </section>
 
-      <div class="info-grid mt-3">
-        <div class="info-item">
-          <label>Status</label>
-          <span :class="schedulerEnabled ? 'status-ok' : 'status-warn'">
-            {{ schedulerEnabled ? '✅ Active (' + info.scheduler_cron + ')' : '⚠️ Disabled' }}
-          </span>
-        </div>
-      </div>
-    </div>
-
-    <div class="card mb-3">
-      <h3 class="mb-2">Last Runs</h3>
-      <div class="run-grid">
-        <div class="run-card">
-          <div class="run-title">Bulk Enrich</div>
-          <div class="run-time">{{ formatTimestamp(info.last_bulk_enrich_at) }}</div>
-          <div class="run-meta">
-            {{ info.last_bulk_enrich_success ?? 0 }} ok · {{ info.last_bulk_enrich_failed ?? 0 }} failed · {{ info.last_bulk_enrich_total ?? 0 }} total
+      <section class="card settings-section">
+        <div class="section-header mb-2">
+          <div>
+            <p class="section-kicker">Automation</p>
+            <h2>Maintenance Jobs</h2>
           </div>
         </div>
-        <div class="run-card">
-          <div class="run-title">Bulk Price Update</div>
-          <div class="run-time">{{ formatTimestamp(info.last_bulk_price_update_at) }}</div>
-          <div class="run-meta">
-            {{ info.last_bulk_price_update_success ?? 0 }} ok · {{ info.last_bulk_price_update_failed ?? 0 }} failed · {{ info.last_bulk_price_update_total ?? 0 }} total
+
+        <div class="info-grid mb-2">
+          <div class="info-item">
+            <label>Price Update Scheduler</label>
+            <span :class="schedulerEnabled ? 'status-ok' : 'status-warn'">
+              {{ schedulerEnabled ? `Active (${info.scheduler_cron})` : 'Disabled' }}
+            </span>
           </div>
-          <div v-if="info.last_bulk_price_update_error" class="run-error">
-            {{ info.last_bulk_price_update_error }}
+          <div class="info-item">
+            <label>Bulk Enrich</label>
+            <span>{{ formatTimestamp(info.last_bulk_enrich_at) }}</span>
+          </div>
+          <div class="info-item">
+            <label>Bulk Price Update</label>
+            <span>{{ formatTimestamp(info.last_bulk_price_update_at) }}</span>
+          </div>
+          <div class="info-item">
+            <label>Catalog Scrape</label>
+            <span>{{ formatTimestamp(info.last_catalog_scrape_at) }}</span>
           </div>
         </div>
-        <div class="run-card">
-          <div class="run-title">Catalog Scrape</div>
-          <div class="run-time">{{ formatTimestamp(info.last_catalog_scrape_at) }}</div>
-          <div class="run-meta">
-            {{ info.last_catalog_scrape_total ?? 0 }} rows · Platforms: {{ info.last_catalog_scrape_platforms || '—' }}
+
+        <div class="settings-columns">
+          <div class="subpanel">
+            <h3>Automated Price Updates</h3>
+            <p class="text-muted mb-2">Automatically refresh market prices on a schedule.</p>
+            <div class="flex gap-2 items-center wrap-mobile">
+              <select class="limit-input" v-model="schedulerInterval" style="width: auto;">
+                <option :value="0">Off (manual only)</option>
+                <option :value="2">Every 2 hours</option>
+                <option :value="6">Every 6 hours</option>
+                <option :value="12">Every 12 hours</option>
+                <option :value="24">Every 24 hours</option>
+                <option :value="168">Weekly</option>
+              </select>
+              <button @click="saveScheduler" class="btn btn-secondary" :disabled="schedulerSaving">
+                {{ schedulerSaving ? 'Saving…' : 'Save Schedule' }}
+              </button>
+            </div>
+          </div>
+
+          <div class="subpanel">
+            <h3>Bulk Cover Enrichment</h3>
+            <p class="text-muted mb-2">Fetch missing covers from metadata providers.</p>
+            <div class="flex gap-2 items-center mb-2 wrap-mobile">
+              <label class="text-muted">Limit per run:</label>
+              <input v-model.number="enrichLimit" type="number" min="1" max="500" class="limit-input" />
+            </div>
+            <button @click="runBulkEnrich" class="btn btn-primary" :disabled="enriching">
+              {{ enriching ? `Enriching… (${enrichProgress.success + enrichProgress.failed}/${enrichProgress.total})` : 'Run Bulk Enrich' }}
+            </button>
+            <div v-if="enrichDone" class="result-box mt-2">
+              {{ enrichProgress.success }} covers fetched, {{ enrichProgress.failed }} failed, {{ enrichProgress.total }} processed.
+            </div>
+          </div>
+
+          <div class="subpanel">
+            <h3>Bulk Price Update</h3>
+            <p class="text-muted mb-2">Refresh market values across the library.</p>
+            <div class="flex gap-2 items-center mb-2 wrap-mobile">
+              <label class="text-muted">Limit per run:</label>
+              <input v-model.number="priceLimit" type="number" min="1" max="500" class="limit-input" />
+            </div>
+            <button @click="runBulkPriceUpdate" class="btn btn-primary" :disabled="priceUpdating">
+              {{ priceUpdating ? `Updating… (${priceProgress.done}/${priceProgress.total})` : 'Run Bulk Price Update' }}
+            </button>
+            <div v-if="priceUpdateDone" class="result-box mt-2">
+              {{ priceProgress.success }} updated, {{ priceProgress.failed }} not found, {{ priceProgress.total }} total.
+            </div>
           </div>
         </div>
-      </div>
-    </div>
+      </section>
 
-    <!-- Cover Enrichment -->
-    <div class="card mb-3">
-      <h3 class="mb-2">🖼 Cover Enrichment</h3>
-      <p class="text-muted mb-2">Automatically fetch covers for all items without one from IGDB and GameTDB.</p>
-      <div class="flex gap-2 items-center mb-2 limit-row">
-        <label class="text-muted">Limit per run:</label>
-        <input v-model.number="enrichLimit" type="number" min="1" max="500" class="limit-input" />
-      </div>
-      <button @click="runBulkEnrich" class="btn btn-primary" :disabled="enriching">
-        {{ enriching ? `⏳ Enriching... (${enrichProgress.success + enrichProgress.failed}/${enrichProgress.total})` : '🚀 Run Bulk Enrich' }}
-      </button>
-      <div v-if="enrichDone" class="result-box mt-2">
-        ✅ Done: {{ enrichProgress.success }} covers fetched, {{ enrichProgress.failed }} failed out of {{ enrichProgress.total }} items
-      </div>
-    </div>
-
-    <!-- Price Tracking -->
-    <div class="card mb-3">
-      <h3 class="mb-2">💰 Price Tracking</h3>
-      <p class="text-muted mb-2">Fetch current market prices from PriceCharting (USD → EUR) for all games.</p>
-      <div class="flex gap-2 items-center mb-2 limit-row">
-        <label class="text-muted">Limit per run:</label>
-        <input v-model.number="priceLimit" type="number" min="1" max="500" class="limit-input" />
-      </div>
-      <button @click="runBulkPriceUpdate" class="btn btn-primary" :disabled="priceUpdating">
-        {{ priceUpdating ? `⏳ Updating... (${priceProgress.done}/${priceProgress.total})` : '💰 Run Bulk Price Update' }}
-      </button>
-      <div v-if="priceUpdateDone" class="result-box mt-2">
-        ✅ Done: {{ priceProgress.success }} updated, {{ priceProgress.failed }} not found out of {{ priceProgress.total }} games
-      </div>
-    </div>
-
-    <p class="section-label">Data</p>
-    <!-- CLZ Import -->
-    <div class="card mb-3">
-    <h3>CLZ / Collectorz Import</h3>
-    <p class="text-muted">Importiert CLZ Game Collector CSV Export direkt.</p>
-    <div class="flex gap-2 items-center import-row">
-        <input type="file" accept=".csv" @change="onClzFile" ref="clzInput" />
-        <button class="btn btn-primary" @click="importClz" :disabled="!clzFile || clzLoading">
-        {{ clzLoading ? 'Importiere...' : 'CLZ Import' }}
-        </button>
-    </div>
-    <div v-if="clzResult" class="mt-2">
-        <p class="text-success">✅ {{ clzResult.imported }} importiert</p>
-        <p v-if="clzResult.skipped" class="text-muted">⚠️ {{ clzResult.skipped }} übersprungen</p>
-        <p v-for="err in clzResult.errors" :key="err" class="text-danger">❌ {{ err }}</p>
-    </div>
-    </div>
-
-
-    <!-- Database -->
-    <div class="card mb-3">
-      <h3 class="mb-2">🗄 Database</h3>
-      <p class="text-muted mb-2">Export your entire collection as CSV backup.</p>
-      <button @click="exportCSV" class="btn btn-secondary">📥 Export Collection as CSV</button>
-    </div>
-
-    <p class="section-label">Danger Zone</p>
-    <!-- Danger Zone -->
-    <div class="card danger-card mb-3">
-      <h3 class="mb-2">⚠️ Danger Zone</h3>
-      <p class="text-muted mb-2">Remove all cover URLs from the database (useful to re-enrich from scratch).</p>
-      <button @click="clearCovers" class="btn btn-danger" :disabled="clearing">
-        {{ clearing ? '⏳ Clearing...' : '🗑 Clear All Covers' }}
-      </button>
-      <div v-if="clearDone" class="result-box mt-2">✅ All covers cleared – run Bulk Enrich to re-fetch.</div>
-    </div>
-
-    <!-- Database Reset -->
-    <div class="card mb-3">
-        <h3>🔥 Database Reset</h3>
-        <p class="text-muted">Löscht alle Games und Plattformen. Nur für Testing!</p>
-        <button @click="clearDatabase" class="btn btn-danger" :disabled="clearLoading">
-        {{ clearLoading ? 'Lösche...' : 'Clear Database' }}
-        </button>
-        <div v-if="clearResult" class="mt-2 p-2 bg-success text-white rounded">
-        ✅ {{ clearResult.message }}
+      <section class="card settings-section">
+        <div class="section-header mb-2">
+          <div>
+            <p class="section-kicker">Data</p>
+            <h2>Import, Export & Backup</h2>
+          </div>
         </div>
+
+        <div class="backup-note mb-2">
+          <strong>Backup reminder:</strong> CSV export backs up your collection data, but a full server backup still needs the database and uploaded images.
+        </div>
+
+        <div class="settings-columns">
+          <div class="subpanel">
+            <h3>CLZ Import</h3>
+            <p class="text-muted mb-2">Import a CSV exported from CLZ / Collectorz.</p>
+            <div class="flex gap-2 items-center import-row">
+              <input type="file" accept=".csv" @change="onClzFile" ref="clzInput" />
+              <button class="btn btn-primary" @click="importClz" :disabled="!clzFile || clzLoading">
+                {{ clzLoading ? 'Importing…' : 'Import CLZ CSV' }}
+              </button>
+            </div>
+            <div v-if="clzResult" class="mt-2">
+              <p class="text-success">{{ clzResult.imported }} imported</p>
+              <p v-if="clzResult.skipped" class="text-muted">{{ clzResult.skipped }} skipped</p>
+              <p v-for="err in clzResult.errors" :key="err" class="text-error">{{ err }}</p>
+            </div>
+          </div>
+
+          <div class="subpanel">
+            <h3>Collection Export</h3>
+            <p class="text-muted mb-2">Download the current collection as CSV.</p>
+            <button @click="exportCSV" class="btn btn-secondary">Download CSV Export</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="card settings-section danger-card">
+        <div class="section-header mb-2">
+          <div>
+            <p class="section-kicker">Danger Zone</p>
+            <h2>Reset & Cleanup</h2>
+          </div>
+        </div>
+        <div class="settings-columns danger-columns">
+          <div class="subpanel subpanel-danger">
+            <h3>Clear Cover Links</h3>
+            <p class="text-muted mb-2">Remove all saved cover URLs so the library can be enriched again from scratch.</p>
+            <button @click="clearCovers" class="btn btn-danger" :disabled="clearing">
+              {{ clearing ? 'Clearing…' : 'Clear All Covers' }}
+            </button>
+            <div v-if="clearDone" class="result-box mt-2">All covers cleared. You can run Bulk Enrich again now.</div>
+          </div>
+
+          <div class="subpanel subpanel-danger">
+            <h3>Clear Database</h3>
+            <p class="text-muted mb-2">Delete all games from the database. Use this only for test environments.</p>
+            <button @click="clearDatabase" class="btn btn-danger" :disabled="clearLoading">
+              {{ clearLoading ? 'Clearing…' : 'Clear Database' }}
+            </button>
+            <div v-if="clearResult" class="result-box mt-2">{{ clearResult.message }}</div>
+          </div>
+        </div>
+      </section>
     </div>
-
-
   </div>
 </template>
 
@@ -396,21 +399,22 @@ const coverCoverage = computed(() => Number(info.value.cover_coverage_pct || 0))
 const providersConfigured = computed(() => Number(info.value.providers_configured || 0))
 const providersTotal = computed(() => Number(info.value.providers_total || 4))
 const schedulerEnabled = computed(() => Boolean(info.value.scheduler_enabled))
-const schedulerTypeLabel = computed(() => {
-  if (!info.value.scheduler_type || info.value.scheduler_type === 'manual') return 'Manual only'
-  if (info.value.scheduler_type === 'github_actions') return 'GitHub Actions'
-  return String(info.value.scheduler_type)
-})
 const setupHints = computed(() => {
   const hints = []
-  if (!info.value.igdb_configured) hints.push('Set IGDB_CLIENT_ID + IGDB_CLIENT_SECRET to improve metadata and cover lookup.')
-  if (!info.value.ebay_configured) {
-    hints.push('Set eBay credentials to enable reliable market prices.')
-  }
+  if (!info.value.igdb_configured) hints.push('Set IGDB credentials to improve metadata and cover lookup.')
+  if (!info.value.ebay_configured) hints.push('Add eBay credentials to enable reliable market prices.')
   if ((info.value.missing_covers ?? 0) > 0) hints.push('Run Bulk Enrich to reduce missing covers.')
   if ((info.value.remote_covers ?? 0) > 0) hints.push('Some covers still use remote URLs; re-enrich to cache more locally.')
   return hints
 })
+const themeSwatches = [
+  { value: 'indigo', label: 'Indigo', color: '#8b5cf6' },
+  { value: 'emerald', label: 'Emerald', color: '#10b981' },
+  { value: 'sunset', label: 'Sunset', color: '#f97316' },
+  { value: 'ocean', label: 'Ocean', color: '#0ea5e9' },
+  { value: 'rose', label: 'Rose', color: '#e11d48' },
+  { value: 'slate', label: 'Slate', color: '#64748b' },
+]
 
 function onThemeChange(event) {
   const nextTheme = event?.target?.value || 'indigo'
@@ -545,7 +549,7 @@ async function importClz() {
       notifyError(detail?.message || detail || clzResult.value?.error || 'CLZ import failed.')
     }
   } catch (e) {
-    clzResult.value = { imported: 0, skipped: 0, errors: ['Import fehlgeschlagen'] }
+    clzResult.value = { imported: 0, skipped: 0, errors: ['Import failed'] }
     notifyError('CLZ import failed.')
   } finally {
     clzLoading.value = false
@@ -581,7 +585,7 @@ async function runBulkEnrich() {
       enrichProgress.value = res.data
       enrichDone.value = true
       notifySuccess(`Bulk enrich finished (${res.data?.success ?? 0} success).`)
-      await loadInfo() // refresh missing covers count
+      await loadInfo()
     } else {
       const detail = res.data?.detail
       notifyError(detail?.message || detail || 'Bulk enrich failed.')
@@ -631,7 +635,7 @@ async function exportCSV() {
 }
 
 async function clearCovers() {
-  if (!confirm('Are you sure? This will remove ALL cover URLs from your collection.')) return
+  if (!confirm('Are you sure? This will remove all cover URLs from your collection.')) return
   clearing.value = true
   clearDone.value = false
   try {
@@ -653,8 +657,7 @@ async function clearCovers() {
 }
 
 async function clearDatabase() {
-  if (!confirm('Wirklich ALLES löschen? Das kann nicht rückgängig gemacht werden!')) return
-  
+  if (!confirm('Really delete the entire collection database? This cannot be undone.')) return
   clearLoading.value = true
   try {
     const res = await settingsApi.clearDatabase()
@@ -664,10 +667,9 @@ async function clearDatabase() {
       const detail = res.data?.detail
       notifyError(detail?.message || detail || 'Failed to clear database.')
     }
-    // Refresh Games List nach Clear
     location.reload()
   } catch (e) {
-    clearResult.value = { message: 'Fehler: ' + e.message }
+    clearResult.value = { message: `Error: ${e.message}` }
     notifyError('Failed to clear database.')
   } finally {
     clearLoading.value = false
@@ -678,34 +680,47 @@ onMounted(loadInfo)
 </script>
 
 <style scoped>
-.section-label {
-  font-size: 0.75rem;
+.settings-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.settings-stack {
+  display: grid;
+  gap: 1rem;
+}
+
+.settings-section {
+  display: grid;
+  gap: 1rem;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.section-header h2 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.section-kicker {
+  margin: 0 0 0.2rem;
+  font-size: 0.72rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--text-muted);
-  margin: 0.2rem 0 0.5rem;
 }
 
-.card-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-}
-
-.mb-0 {
-  margin-bottom: 0;
-}
-
-.mt-2 {
-  margin-top: 1rem;
-}
-
-.btn-small {
-  min-height: 34px;
-  padding: 0.35rem 0.7rem;
-  font-size: 0.82rem;
-}
+.mb-0 { margin-bottom: 0; }
+.mt-2 { margin-top: 1rem; }
+.wrap-mobile { flex-wrap: wrap; }
 
 .kpi-grid {
   display: grid;
@@ -718,12 +733,6 @@ onMounted(loadInfo)
   border: 1px solid var(--glass-border);
   border-radius: 0.75rem;
   padding: 0.75rem;
-  transition: transform 0.2s;
-}
-
-.kpi-card:hover {
-  transform: translateY(-2px);
-  border-color: var(--glass-border-hover);
 }
 
 .kpi-card label {
@@ -761,14 +770,14 @@ onMounted(loadInfo)
 .setup-hints {
   background: rgba(59, 130, 246, 0.08);
   border: 1px solid rgba(59, 130, 246, 0.25);
-  border-radius: 0.5rem;
-  padding: 0.75rem;
+  border-radius: 0.75rem;
+  padding: 0.85rem;
 }
 
 .hint-title {
-  font-size: 0.8rem;
+  font-size: 0.82rem;
   font-weight: 600;
-  margin-bottom: 0.25rem;
+  margin-bottom: 0.35rem;
 }
 
 .hint-list {
@@ -780,16 +789,44 @@ onMounted(loadInfo)
   font-size: 0.82rem;
 }
 
-.appearance-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 0.75rem;
-}
-
-.secrets-grid {
+.appearance-grid,
+.secrets-grid,
+.info-grid,
+.run-grid,
+.settings-columns {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 0.75rem;
+  gap: 0.85rem;
+}
+
+.theme-preview-grid {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.theme-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.45rem 0.7rem;
+  border-radius: 999px;
+  border: 1px solid var(--glass-border);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-muted);
+  font-size: 0.82rem;
+}
+
+.theme-chip.active {
+  border-color: color-mix(in srgb, var(--primary) 55%, transparent);
+  color: var(--text);
+}
+
+.theme-dot {
+  width: 0.9rem;
+  height: 0.9rem;
+  border-radius: 999px;
+  display: inline-block;
 }
 
 .clear-check {
@@ -804,18 +841,16 @@ onMounted(loadInfo)
 .secret-actions {
   display: flex;
   justify-content: flex-end;
+  gap: 0.5rem;
+  flex-wrap: wrap;
 }
 
-.info-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 1rem;
-}
-
-.info-item {
-  background: var(--bg);
+.info-item,
+.subpanel {
+  background: rgba(0, 0, 0, 0.2);
   padding: 1rem;
-  border-radius: 0.5rem;
+  border-radius: 0.75rem;
+  border: 1px solid var(--glass-border);
 }
 
 .info-item label {
@@ -825,52 +860,22 @@ onMounted(loadInfo)
   margin-bottom: 0.25rem;
 }
 
-.status-ok { color: var(--success); font-weight: bold; }
-.status-error { color: #ef4444; font-weight: bold; }
-.status-warn { color: #f59e0b; font-weight: bold; }
-
-.scheduler-status {
-  display: flex;
-  gap: 0.75rem;
-  align-items: baseline;
+.subpanel h3 {
+  margin: 0 0 0.35rem;
+  font-size: 1rem;
 }
 
-.run-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 0.75rem;
-}
-
-.run-card {
-  background: rgba(0, 0, 0, 0.2);
-  border: 1px solid var(--glass-border);
+.backup-note {
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.25);
   border-radius: 0.75rem;
-  padding: 0.75rem;
+  padding: 0.85rem 1rem;
+  color: #fcd34d;
 }
 
-.run-title {
-  font-size: 0.8rem;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-}
-
-.run-time {
-  margin-top: 0.2rem;
-  font-weight: 600;
-}
-
-.run-meta {
-  margin-top: 0.25rem;
-  font-size: 0.8rem;
-  color: var(--text-muted);
-}
-
-.run-error {
-  margin-top: 0.35rem;
-  font-size: 0.75rem;
-  color: var(--warning);
-}
+.status-ok { color: var(--success); font-weight: 700; }
+.status-error { color: var(--error); font-weight: 700; }
+.status-warn { color: var(--warning); font-weight: 700; }
 
 .limit-input {
   width: 80px;
@@ -890,25 +895,24 @@ onMounted(loadInfo)
 }
 
 .danger-card {
-  border: 1px solid #ef444440;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.subpanel-danger {
+  border-color: rgba(239, 68, 68, 0.2);
 }
 
 @media (max-width: 639px) {
-  /* 2-column info grid on phones */
-  .info-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  /* Stack label + input for the limit row */
-  .limit-row {
+  .settings-header,
+  .section-header {
     flex-direction: column;
     align-items: stretch;
   }
+
   .limit-input {
     width: 100%;
   }
 
-  /* Stack file input + button for the CLZ import row */
   .import-row {
     flex-direction: column;
     align-items: stretch;

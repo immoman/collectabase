@@ -11,6 +11,7 @@
   --primary: #8b5cf6;
   --primary-dark: #7c3aed;
   --secondary: #ec4899;
+  --accent-tertiary: #38bdf8;
   --bg: #09090b;
   --bg-light: rgba(24, 24, 27, 0.6);
   --bg-lighter: rgba(39, 39, 42, 0.7);
@@ -40,12 +41,35 @@
   --primary: #10b981;
   --primary-dark: #059669;
   --secondary: #14b8a6;
+  --accent-tertiary: #22d3ee;
 }
 
 :root[data-theme='sunset'] {
   --primary: #f97316;
   --primary-dark: #ea580c;
   --secondary: #ef4444;
+  --accent-tertiary: #facc15;
+}
+
+:root[data-theme='ocean'] {
+  --primary: #0ea5e9;
+  --primary-dark: #0284c7;
+  --secondary: #14b8a6;
+  --accent-tertiary: #8b5cf6;
+}
+
+:root[data-theme='rose'] {
+  --primary: #e11d48;
+  --primary-dark: #be123c;
+  --secondary: #f97316;
+  --accent-tertiary: #fb7185;
+}
+
+:root[data-theme='slate'] {
+  --primary: #64748b;
+  --primary-dark: #475569;
+  --secondary: #0f766e;
+  --accent-tertiary: #38bdf8;
 }
 
 :root[data-density='compact'] {
@@ -63,9 +87,9 @@ body {
   background-color: var(--bg);
   /* The Secret Sauce for Glassmorphism: Background animated gradients */
   background-image: 
-    radial-gradient(circle at 10% 20%, rgba(139, 92, 246, 0.12), transparent 30%),
-    radial-gradient(circle at 90% 80%, rgba(236, 72, 153, 0.12), transparent 30%),
-    radial-gradient(circle at 50% 50%, rgba(56, 189, 248, 0.08), transparent 40%);
+    radial-gradient(circle at 10% 20%, color-mix(in srgb, var(--primary) 24%, transparent), transparent 30%),
+    radial-gradient(circle at 90% 80%, color-mix(in srgb, var(--secondary) 24%, transparent), transparent 30%),
+    radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--accent-tertiary) 16%, transparent), transparent 40%);
   background-attachment: fixed;
   color: var(--text);
   line-height: 1.6;

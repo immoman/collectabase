@@ -26,6 +26,15 @@ def _nullable_money(value: Any) -> float | None:
     return _money(value)
 
 
+def _quantity(value: Any, default: int = 1) -> int:
+    if value in (None, ""):
+        return default
+    quantity = int(value)
+    if quantity < 1:
+        raise bad_request("Lot item amount must be at least 1")
+    return quantity
+
+
 def _lot_total_cost(row: dict) -> float:
     return round(
         _money(row.get("purchase_price_gross"))
@@ -108,18 +117,25 @@ def _recalculate_lot_allocations(db, lot_id: int) -> None:
         return
 
     remaining_pool = round(total_cost - manual_total, 2)
-    positive_estimates = [_money(item.get("estimated_value")) for item in automatic_items if _money(item.get("estimated_value")) > 0]
+    positive_estimates = [
+        round(_money(item.get("estimated_value")) * _quantity(item.get("quantity")), 2)
+        for item in automatic_items
+        if _money(item.get("estimated_value")) > 0
+    ]
     use_estimated = len(positive_estimates) > 0
     weights = []
     if use_estimated:
-        total_weight = round(sum(_money(item.get("estimated_value")) for item in automatic_items), 2)
+        total_weight = round(
+            sum(_money(item.get("estimated_value")) * _quantity(item.get("quantity")) for item in automatic_items),
+            2,
+        )
         if total_weight <= 0:
             use_estimated = False
     if use_estimated:
         for item in automatic_items:
-            weights.append(_money(item.get("estimated_value")))
+            weights.append(round(_money(item.get("estimated_value")) * _quantity(item.get("quantity")), 2))
     else:
-        weights = [1.0 for _ in automatic_items]
+        weights = [float(_quantity(item.get("quantity"))) for item in automatic_items]
     total_weight = sum(weights)
 
     allocated_sum = 0.0
@@ -151,38 +167,50 @@ def _build_lot_payload(db, lot: dict) -> dict:
     inventory_count = 0
     kept_count = 0
     discarded_count = 0
+    line_item_count = len(items)
+    quantity_total = 0
     estimated_total_value = 0.0
     allocated_total = 0.0
     net_sales = 0.0
     realized_profit = 0.0
     remaining_cost_basis = 0.0
+    inventory_cost_basis = 0.0
     written_off_cost_basis = 0.0
     expected_remaining_value = 0.0
+    estimated_inventory_value = 0.0
+    estimated_kept_value = 0.0
 
     for item in items:
         sale = _load_sale_for_item(db, item["id"])
+        quantity = _quantity(item.get("quantity"))
         estimated_value = _nullable_money(item.get("estimated_value"))
+        estimated_total_value_item = round((estimated_value or 0.0) * quantity, 2)
         allocated_cost_basis = _money(item.get("allocated_cost_basis"))
-        estimated_total_value += estimated_value or 0.0
+        allocated_unit_cost_basis = round(allocated_cost_basis / quantity, 2) if quantity else allocated_cost_basis
+        quantity_total += quantity
+        estimated_total_value += estimated_total_value_item
         allocated_total += allocated_cost_basis
 
         if sale:
-            sold_count += 1
+            sold_count += quantity
             net_sales += _money(sale.get("net_proceeds"))
             realized_profit += _money(sale.get("realized_profit"))
         else:
             status = item.get("status") or "inventory"
             if status == "discarded":
-                discarded_count += 1
+                discarded_count += quantity
                 written_off_cost_basis += allocated_cost_basis
             elif status == "kept":
-                kept_count += 1
+                kept_count += quantity
                 remaining_cost_basis += allocated_cost_basis
-                expected_remaining_value += estimated_value or 0.0
+                expected_remaining_value += estimated_total_value_item
+                estimated_kept_value += estimated_total_value_item
             else:
-                inventory_count += 1
+                inventory_count += quantity
                 remaining_cost_basis += allocated_cost_basis
-                expected_remaining_value += estimated_value or 0.0
+                inventory_cost_basis += allocated_cost_basis
+                expected_remaining_value += estimated_total_value_item
+                estimated_inventory_value += estimated_total_value_item
 
         if sale:
             sale_payload = {
@@ -203,9 +231,12 @@ def _build_lot_payload(db, lot: dict) -> dict:
         payload_items.append(
             {
                 **item,
+                "quantity": quantity,
                 "estimated_value": estimated_value,
+                "estimated_total_value": estimated_total_value_item,
                 "cost_basis_override": _nullable_money(item.get("cost_basis_override")),
                 "allocated_cost_basis": allocated_cost_basis,
+                "allocated_unit_cost_basis": allocated_unit_cost_basis,
                 "sale": sale_payload,
             }
         )
@@ -224,7 +255,8 @@ def _build_lot_payload(db, lot: dict) -> dict:
         "items": payload_items,
         "sales": sorted(sales, key=lambda sale: str(sale.get("sold_at") or "")),
         "summary": {
-            "item_count": len(payload_items),
+            "line_item_count": line_item_count,
+            "item_count": quantity_total,
             "sold_count": sold_count,
             "inventory_count": inventory_count,
             "kept_count": kept_count,
@@ -234,8 +266,11 @@ def _build_lot_payload(db, lot: dict) -> dict:
             "net_sales": round(net_sales, 2),
             "realized_profit": round(realized_profit, 2),
             "remaining_cost_basis": round(remaining_cost_basis, 2),
+            "inventory_cost_basis": round(inventory_cost_basis, 2),
             "written_off_cost_basis": round(written_off_cost_basis, 2),
             "expected_remaining_value": round(expected_remaining_value, 2),
+            "estimated_inventory_value": round(estimated_inventory_value, 2),
+            "estimated_kept_value": round(estimated_kept_value, 2),
             "break_even_gap": round(break_even_gap, 2),
             "roi_realized_pct": roi_realized_pct,
             "recovery_rate_pct": recovery_rate_pct,
@@ -369,9 +404,9 @@ async def create_lot_item(lot_id: int, payload: LotItemCreate):
         cursor = db.execute(
             """
             INSERT INTO lot_items (
-                lot_id, game_id, title_snapshot, platform_snapshot, item_type_snapshot,
+                lot_id, game_id, title_snapshot, platform_snapshot, item_type_snapshot, quantity,
                 estimated_value, cost_basis_override, allocated_cost_basis, allocation_method, status, notes
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, 0, 'estimated', ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, 'estimated', ?, ?)
             """,
             (
                 lot_id,
@@ -379,6 +414,7 @@ async def create_lot_item(lot_id: int, payload: LotItemCreate):
                 title_snapshot,
                 platform_snapshot,
                 item_type_snapshot,
+                _quantity(payload.quantity),
                 _nullable_money(payload.estimated_value),
                 _nullable_money(payload.cost_basis_override),
                 status,
@@ -409,6 +445,7 @@ async def update_lot_item(lot_id: int, item_id: int, payload: LotItemUpdate):
         title_snapshot = payload.title_snapshot if payload.title_snapshot is not None else item.get("title_snapshot")
         platform_snapshot = payload.platform_snapshot if payload.platform_snapshot is not None else item.get("platform_snapshot")
         item_type_snapshot = payload.item_type_snapshot if payload.item_type_snapshot is not None else item.get("item_type_snapshot")
+        quantity = _quantity(payload.quantity) if payload.quantity is not None else _quantity(item.get("quantity"))
 
         if linked_game and payload.title_snapshot is None:
             title_snapshot = linked_game.get("title")
@@ -433,7 +470,7 @@ async def update_lot_item(lot_id: int, item_id: int, payload: LotItemUpdate):
         db.execute(
             """
             UPDATE lot_items
-            SET game_id = ?, title_snapshot = ?, platform_snapshot = ?, item_type_snapshot = ?,
+            SET game_id = ?, title_snapshot = ?, platform_snapshot = ?, item_type_snapshot = ?, quantity = ?,
                 estimated_value = ?, cost_basis_override = ?, status = ?, notes = ?, updated_at = CURRENT_TIMESTAMP
             WHERE id = ?
             """,
@@ -442,6 +479,7 @@ async def update_lot_item(lot_id: int, item_id: int, payload: LotItemUpdate):
                 title_snapshot,
                 platform_snapshot,
                 item_type_snapshot,
+                quantity,
                 _nullable_money(payload.estimated_value) if payload.estimated_value is not None else _nullable_money(item.get("estimated_value")),
                 override_value,
                 status,

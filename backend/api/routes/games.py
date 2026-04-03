@@ -33,12 +33,14 @@ async def list_games(
             query += " AND g.is_wishlist = ?"
             params.append(1 if wishlist else 0)
         if search:
-            query += " AND (g.title LIKE ? OR g.publisher LIKE ? OR g.developer LIKE ?)"
+            query += " AND (g.title LIKE ? OR g.publisher LIKE ? OR g.developer LIKE ? OR COALESCE(p.name, '') LIKE ? OR COALESCE(g.item_type, '') LIKE ? OR COALESCE(g.barcode, '') LIKE ?)"
             search_param = f"%{search}%"
-            params.extend([search_param, search_param, search_param])
+            params.extend([search_param, search_param, search_param, search_param, search_param, search_param])
 
         query += " ORDER BY g.updated_at DESC"
-        cursor = db.execute(query, params)
+        if search:
+            query += " LIMIT 20"
+        cursor = db.execute(query, tuple(params))
         return [dict_from_row(row) for row in cursor.fetchall()]
 
 
